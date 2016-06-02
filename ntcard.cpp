@@ -19,6 +19,7 @@ namespace opt {
 
 int main(int argc, const char *argv[]){
     std::ifstream in(argv[1]);
+    opt::kmerLen = atoi(argv[2]);
     uint64_t tVec[opt::nbuck];
 	for (unsigned j=0; j<opt::nbuck; j++)
 		tVec[j]=0;
