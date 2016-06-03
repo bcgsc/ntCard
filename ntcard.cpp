@@ -24,7 +24,7 @@ static const char USAGE_MESSAGE[] =
     " Options:\n"
     "\n"
     "  -t, --threads=N	use N parallel threads [1]\n"
-    "  -k, --kmer=N		the length of kmer [64]\n"
+    "  -k, --kmer=N	the length of kmer [64]\n"
     "  -f, --fastq	input files in FASTA format (default:FASTQ)\n"
     "  -c, --canonical	get the estimate for cannonical form\n"
     "      --help	display this help and exit\n"
