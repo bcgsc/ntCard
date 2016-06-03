@@ -1,14 +1,14 @@
 CXX=g++
 OPTFLAGS=-O3
-LIBPATH=-Ilib
+LIBPATH=-Ilib -ldl
 
-EXEC:ntcard 
+all:ntcard 
 
-SRCS=ntcard.cpp 
+SRCS=ntcard.cpp lib/Uncompress.cpp lib/Fcontrol.cpp 
 
 ntcard:$(SRCS)
 	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^
 
 clean:
-	rm $(EXEC)
+	rm ntcard
 

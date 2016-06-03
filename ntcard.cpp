@@ -1,12 +1,14 @@
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <cstdlib>
-#include "nthash.hpp"
 #include <getopt.h>
+
+#include "nthash.hpp"
+#include "Uncompress.h"
+
 
 #define PROGRAM "ntcard"
 
@@ -16,7 +18,18 @@ static const char VERSION_MESSAGE[] =
     "Copyright 2016 Canada's Michael Smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] =
-    "Usage: " PROGRAM " [OPTION]... QUERY\n"
+    "Usage: " PROGRAM " [OPTION]... FILES...\n"
+    "Estimates the number of k-mers in FILES (>=1) seprated by space.\n"
+    "\n"
+    " Options:\n"
+    "\n"
+    "  -t, --threads=N	use N parallel threads [1]\n"
+    "  -k, --kmer=N		the length of kmer [64]\n"
+    "  -f, --fastq		input files in FASTA format (default:FASTQ)\n"
+    "  -c, --canonical	get the estimate for cannonical form\n"
+    "      --help		display this help and exit\n"
+    "      --version	output version information and exit\n"
+    "\n"
     "Report bugs to hmohamadi@bcgsc.ca.\n";
 
 
@@ -28,10 +41,11 @@ unsigned nHash=7;
 unsigned kmLen=128;
 unsigned nBuck=65536;
 unsigned nBits=16;
-bool fasta = false;
+static bool fasta=false;
+static bool canon=false;
 }
 
-static const char shortopts[] = "k:b:h:t:f:c:";
+static const char shortopts[] = "t:k:b:h:fc";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -70,6 +84,9 @@ int main(int argc, char** argv) {
         case 'f':
             opt::fasta=true;
             break;
+        case 'c':
+            opt::canon=true;
+            break;
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
             exit(EXIT_SUCCESS);
@@ -107,17 +124,22 @@ int main(int argc, char** argv) {
         for(string seq, hseq; good;) {
             good = getline(in, hseq);
             good = getline(in, seq);
-            good = getline(in, hseq);
-            good = getline(in, hseq);
+            if(!opt::fasta) {
+                good = getline(in, hseq);
+                good = getline(in, hseq);
+            }
             if(good) {
                 string kmer = seq.substr(0, opt::kmLen);
-                uint64_t hVal = NTP64(kmer.c_str(), opt::kmLen);
+                uint64_t hVal, fhVal=0, rhVal=0;
+                if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
+                else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
                 if(hVal&(~((uint64_t)opt::nBuck-1))) {
                     uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
                     if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
                 }
                 for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                    hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                    if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                    else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
                     if(hVal&(~((uint64_t)opt::nBuck-1))) {
                         uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
                         if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
@@ -134,7 +156,8 @@ int main(int argc, char** argv) {
         pEst += 1.0/((uint64_t)1<<mVec[j]);
     zEst = 1.0/pEst;
     eEst = alpha * opt::nBuck * opt::nBuck * zEst;
-    std::cout << (unsigned long long) eEst << "\n";
     delete [] mVec;
+
+    std::cout << "Exp# of kmers(k=" << opt::kmLen << "): " << (unsigned long long) eEst << "\n";
     return 0;
 }
