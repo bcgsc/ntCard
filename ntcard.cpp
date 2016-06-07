@@ -5,10 +5,11 @@
 #include <vector>
 #include <cstdlib>
 #include <getopt.h>
+#include <cassert>
 
 #include "nthash.hpp"
 #include "Uncompress.h"
-
+//#include "FastaReader.h"
 
 #define PROGRAM "ntcard"
 
@@ -146,8 +147,32 @@ int main(int argc, char** argv) {
                     }
                 }
             }
-        }
+        }        
         in.close();
+        
+		/*FastaReader in(inFiles[file_i].c_str(), FastaReader::NO_FOLD_CASE);
+		size_t seqCount=0;
+		for (FastaRecord rec; in >> rec; ++seqCount) {
+			string& seq = rec.seq;
+			string kmer = seq.substr(0, opt::kmLen);
+			uint64_t hVal, fhVal=0, rhVal=0;
+			if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
+			else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
+			if(hVal&(~((uint64_t)opt::nBuck-1))) {
+				uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+				if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+			}
+			for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
+				if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+				else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+				if(hVal&(~((uint64_t)opt::nBuck-1))) {
+					uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+					if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+				}
+			}
+		}
+		assert(in.eof());
+		std::cerr << "processed " << seqCount << " sequences" << "\n";*/
     }
 
     double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
