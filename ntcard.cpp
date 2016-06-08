@@ -60,110 +60,110 @@ static const struct option longopts[] = {
 };
 
 unsigned getftype(std::ifstream &in, std::string &samSeq) {
-	std::string hseq;
-	getline(in,hseq);
-	if(hseq[0]=='>') {
-		return 1;
-	}
-	if(hseq[0]=='@') {
-		if( (hseq[1]=='H'&& hseq[2]=='D') || 
-			(hseq[1]=='S'&& hseq[2]=='Q') ||
-			(hseq[1]=='R'&& hseq[2]=='G') ||
-			(hseq[1]=='P'&& hseq[2]=='G') ||
-			(hseq[1]=='C'&& hseq[2]=='O') ) {
-			return 2;
-		}
-		else
-			return 0;		
-	}
-	opt::samH=false;
-	samSeq=hseq;
-	return 2;	
+    std::string hseq;
+    getline(in,hseq);
+    if(hseq[0]=='>') {
+        return 1;
+    }
+    if(hseq[0]=='@') {
+        if( (hseq[1]=='H'&& hseq[2]=='D') ||
+                (hseq[1]=='S'&& hseq[2]=='Q') ||
+                (hseq[1]=='R'&& hseq[2]=='G') ||
+                (hseq[1]=='P'&& hseq[2]=='G') ||
+                (hseq[1]=='C'&& hseq[2]=='O') ) {
+            return 2;
+        }
+        else
+            return 0;
+    }
+    opt::samH=false;
+    samSeq=hseq;
+    return 2;
 }
 
 void getEfq(uint8_t *mVec, std::ifstream &in) {
-	bool good = true;
-	for(string seq, hseq; good;) {			
-		good = getline(in, seq);
-		good = getline(in, hseq);
-		good = getline(in, hseq);
-		if(good) {
-			string kmer = seq.substr(0, opt::kmLen);
-			uint64_t hVal, fhVal=0, rhVal=0;
-			if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-			else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-			if(hVal&(~((uint64_t)opt::nBuck-1))) {
-				uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-				if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-			}
-			for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-				if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-				else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-				if(hVal&(~((uint64_t)opt::nBuck-1))) {
-					uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-					if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-				}
-			}
-		}
-		good = getline(in, hseq);
-	}     
+    bool good = true;
+    for(string seq, hseq; good;) {
+        good = getline(in, seq);
+        good = getline(in, hseq);
+        good = getline(in, hseq);
+        if(good) {
+            string kmer = seq.substr(0, opt::kmLen);
+            uint64_t hVal, fhVal=0, rhVal=0;
+            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
+            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
+            if(hVal&(~((uint64_t)opt::nBuck-1))) {
+                uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+                if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+            }
+            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
+                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                if(hVal&(~((uint64_t)opt::nBuck-1))) {
+                    uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+                    if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+                }
+            }
+        }
+        good = getline(in, hseq);
+    }
 }
 
 void getEfa(uint8_t *mVec, std::ifstream &in) {
-	bool good = true;
-	for(string seq, hseq; good;) {			
-		good = getline(in, seq);
-		if(good) {
-			string kmer = seq.substr(0, opt::kmLen);
-			uint64_t hVal, fhVal=0, rhVal=0;
-			if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-			else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-			if(hVal&(~((uint64_t)opt::nBuck-1))) {
-				uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-				if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-			}
-			for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-				if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-				else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-				if(hVal&(~((uint64_t)opt::nBuck-1))) {
-					uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-					if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-				}
-			}
-		}
-		good = getline(in, hseq);
-	}
+    bool good = true;
+    for(string seq, hseq; good;) {
+        good = getline(in, seq);
+        if(good) {
+            string kmer = seq.substr(0, opt::kmLen);
+            uint64_t hVal, fhVal=0, rhVal=0;
+            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
+            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
+            if(hVal&(~((uint64_t)opt::nBuck-1))) {
+                uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+                if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+            }
+            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
+                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                if(hVal&(~((uint64_t)opt::nBuck-1))) {
+                    uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+                    if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+                }
+            }
+        }
+        good = getline(in, hseq);
+    }
 }
 
 void getEsm(uint8_t *mVec, std::ifstream &in, const std::string &samSeq) {
-	std::string samLine,seq;
-	std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
-	if(opt::samH) {
-		while(getline(in,samLine))
-			if (samLine[0]!='@') break;
-	}
-	else 
-		samLine=samSeq;
-	do {
-		std::istringstream iss(samLine);
-		iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
-		string kmer = seq.substr(0, opt::kmLen);
-		uint64_t hVal, fhVal=0, rhVal=0;
-		if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-		else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-		if(hVal&(~((uint64_t)opt::nBuck-1))) {
-			uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-			if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-		}
-		for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-			if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-			else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-			if(hVal&(~((uint64_t)opt::nBuck-1))) {
-				uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-				if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-			}
-		}
-	} while(getline(in,samLine));
+    std::string samLine,seq;
+    std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
+    if(opt::samH) {
+        while(getline(in,samLine))
+            if (samLine[0]!='@') break;
+    }
+    else
+        samLine=samSeq;
+    do {
+        std::istringstream iss(samLine);
+        iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
+        string kmer = seq.substr(0, opt::kmLen);
+        uint64_t hVal, fhVal=0, rhVal=0;
+        if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
+        else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
+        if(hVal&(~((uint64_t)opt::nBuck-1))) {
+            uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+            if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+        }
+        for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
+            if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+            else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+            if(hVal&(~((uint64_t)opt::nBuck-1))) {
+                uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+                if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+            }
+        }
+    } while(getline(in,samLine));
 }
 
 int main(int argc, char** argv) {
@@ -221,16 +221,16 @@ int main(int argc, char** argv) {
     for (unsigned j=0; j<opt::nBuck; j++) mVec[j]=0;
 
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-		std::ifstream in(inFiles[file_i].c_str());
-		std::string samSeq;
-		unsigned ftype = getftype(in,samSeq);
+        std::ifstream in(inFiles[file_i].c_str());
+        std::string samSeq;
+        unsigned ftype = getftype(in,samSeq);
         if(ftype==0)
-			getEfq(mVec, in);
-		else if (ftype==1)
-			getEfa(mVec, in);
-		else if (ftype==2) 
-			getEsm(mVec, in, samSeq);
-		in.close();
+            getEfq(mVec, in);
+        else if (ftype==1)
+            getEfa(mVec, in);
+        else if (ftype==2)
+            getEsm(mVec, in, samSeq);
+        in.close();
     }
 
     double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
