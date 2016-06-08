@@ -4,7 +4,7 @@ LIBPATH=-Ilib -ldl
 
 all:ntcard 
 
-SRCS=ntcard.cpp lib/Uncompress.cpp  lib/Fcontrol.cpp lib/Sequence.cpp lib/Options.cpp lib/FastaReader.cpp 
+SRCS=ntcard.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
 
 ntcard:$(SRCS)
 	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^
