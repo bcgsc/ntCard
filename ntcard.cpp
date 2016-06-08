@@ -19,7 +19,8 @@ static const char VERSION_MESSAGE[] =
 
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILES...\n"
-    "Estimates the number of k-mers in FILES (>=1) seprated by space.\n"
+    "Estimates the number of k-mers in FILES(>=1).\n"
+    "Accepatble file formats: fastq, fasta, sam, bam, gz, bz, zip.\n"
     "\n"
     " Options:\n"
     "\n"
@@ -87,7 +88,7 @@ void getEfq(uint8_t *mVec, std::ifstream &in) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
-        if(good) {
+        if(good && seq.length()>=opt::kmLen) {
             string kmer = seq.substr(0, opt::kmLen);
             uint64_t hVal, fhVal=0, rhVal=0;
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
@@ -113,7 +114,7 @@ void getEfa(uint8_t *mVec, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
-        if(good) {
+        if(good && seq.length()>=opt::kmLen) {
             string kmer = seq.substr(0, opt::kmLen);
             uint64_t hVal, fhVal=0, rhVal=0;
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
@@ -147,20 +148,22 @@ void getEsm(uint8_t *mVec, std::ifstream &in, const std::string &samSeq) {
     do {
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
-        string kmer = seq.substr(0, opt::kmLen);
-        uint64_t hVal, fhVal=0, rhVal=0;
-        if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-        else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-        if(hVal&(~((uint64_t)opt::nBuck-1))) {
-            uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-            if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-        }
-        for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-            if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-            else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+        if(seq.length()>=opt::kmLen) {
+            string kmer = seq.substr(0, opt::kmLen);
+            uint64_t hVal, fhVal=0, rhVal=0;
+            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
+            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
             if(hVal&(~((uint64_t)opt::nBuck-1))) {
                 uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
                 if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+            }
+            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
+                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
+                if(hVal&(~((uint64_t)opt::nBuck-1))) {
+                    uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+                    if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+                }
             }
         }
     } while(getline(in,samLine));
