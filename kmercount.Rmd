@@ -1,0 +1,55 @@
+---
+title: "kmercount-kmc-abyss"
+author: "Golnaz Jahesh"
+date: "June 15, 2016"
+output: 
+  html_document: 
+    fig_caption: yes
+    keep_md: yes
+    highlight: tango
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.table.format = 'markdown')
+```
+----
+## Plotting KMC and Abyss k-mer counts of HG400 error corrected and raw data
+``` {r}
+suppressPackageStartupMessages(library(dplyr))
+library(ggplot2)
+library(knitr)
+library(readr)
+```
+ 
+###Read data
+
+```{r,message=FALSE,warning=FALSE}
+kmcvsabyss_data <- read_tsv("kmercount-kmc-abyss.tsv")
+kmcvsabyss_raw_data <- read_tsv("kmercount-kmc-abyss-giab-raw.tsv")
+data <- kmcvsabyss_data %>% select(Tool,K,F0)
+data_raw <-kmcvsabyss_raw_data %>% select (Tool, K, F0)
+```
+
+### Plot F0( Number of Unique K-mers) vs Kmer Size (K)
+```{r,message=FALSE,warning=FALSE}
+ggplot(data) + aes(x = K, y = F0, colour = Tool) + xlim(0, NA) + ylim(0, NA) +
+  geom_point(shape = 1) + geom_vline(xintercept = c(96,128,144, 192), alpha = 0.2)+ggtitle("HG400 error corrected data Kmercount")
+ggplot(data_raw) + aes(x = K, y = F0, colour = Tool) + xlim(0, NA) + ylim(0, NA) +
+  geom_point(shape = 1) + geom_vline(xintercept = c(96,128,144, 192), alpha = 0.2)+ggtitle("HG400 raw data Kmercount")
+```
+
+### Tabulated data
+#### HG400 error corrected data Kmercount
+```{r}
+data %>% knitr::kable()
+```
+
+#### HG400 raw data Kmercount
+
+```{r}
+data_raw %>% kable()
+```
+
+
