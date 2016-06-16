@@ -10,6 +10,10 @@
 #include "nthash.hpp"
 #include "Uncompress.h"
 
+#ifdef _OPENMP
+# include <omp.h>
+#endif
+
 #define PROGRAM "ntcard"
 
 static const char VERSION_MESSAGE[] =
@@ -220,29 +224,47 @@ int main(int argc, char** argv) {
     }
 
     opt::nBuck = ((unsigned)1) << opt::nBits;
-    uint8_t *mVec = new uint8_t [opt::nBuck];
-    for (unsigned j=0; j<opt::nBuck; j++) mVec[j]=0;
+    uint8_t *tVec = new uint8_t [opt::nBuck];
+	for (unsigned j=0; j<opt::nBuck; j++) tVec[j]=0;
 
-    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-        std::ifstream in(inFiles[file_i].c_str());
-        std::string samSeq;
-        unsigned ftype = getftype(in,samSeq);
-        if(ftype==0)
-            getEfq(mVec, in);
-        else if (ftype==1)
-            getEfa(mVec, in);
-        else if (ftype==2)
-            getEsm(mVec, in, samSeq);
-        in.close();
-    }
+#ifdef _OPENMP
+    omp_set_num_threads(opt::nThrd);
+#endif
+
+	#pragma omp parallel
+	{
+		uint8_t *mVec = new uint8_t [opt::nBuck];
+		for (unsigned j=0; j<opt::nBuck; j++) mVec[j]=0;
+		#pragma omp for schedule(dynamic) nowait
+		for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+			std::ifstream in(inFiles[file_i].c_str());
+			std::string samSeq;
+			unsigned ftype = getftype(in,samSeq);
+			if(ftype==0)
+				getEfq(mVec, in);
+			else if (ftype==1)
+				getEfa(mVec, in);
+			else if (ftype==2)
+				getEsm(mVec, in, samSeq);
+			in.close();
+		}
+		#pragma omp critical(mrg)
+		{
+			for (unsigned j=0; j<opt::nBuck; j++) 
+				if(tVec[j]<mVec[j])
+					tVec[j]=mVec[j];
+		}
+		delete [] mVec;
+	}
 
     double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
     alpha = 1.4426/(1 + 1.079/opt::nBuck);
     for (unsigned j=0; j<opt::nBuck-1; j++)
-        pEst += 1.0/((uint64_t)1<<mVec[j]);
+        pEst += 1.0/((uint64_t)1<<tVec[j]); 
     zEst = 1.0/pEst;
     eEst = alpha * opt::nBuck * opt::nBuck * zEst;
-    delete [] mVec;
+    
+	delete [] tVec;
 
     std::cout << "Exp# of kmers(k=" << opt::kmLen << "): " << (unsigned long long) eEst << "\n";
     return 0;

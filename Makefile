@@ -1,5 +1,5 @@
 CXX=g++
-OPTFLAGS=-O3
+OPTFLAGS=-O3 -fopenmp
 LIBPATH=-Ilib -ldl
 
 all:ntcard 
