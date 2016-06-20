@@ -130,7 +130,7 @@ void getEfq(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
                     }
                     if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
                 }
-            }            
+            }
         }
         good = getline(in, hseq);
     }
@@ -164,14 +164,14 @@ void getEfa(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
                 if(hVal&(~((uint64_t)opt::nBuck-1))) {
                     uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
                     size_t shVal=hVal&(opt::sBuck-1);
-					if(run0==16) {
-						if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-							if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-								m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-							else
-								m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-						}
-					}
+                    if(run0==16) {
+                        if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
+                            if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
+                                m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+                            else
+                                m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+                        }
+                    }
                     if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
                 }
             }
@@ -216,14 +216,14 @@ void getEsm(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
                 if(hVal&(~((uint64_t)opt::nBuck-1))) {
                     uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
                     size_t shVal=hVal&(opt::sBuck-1);
-					if(run0==16) {
-						if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-							if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-								m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-							else
-								m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-						}
-					}
+                    if(run0==16) {
+                        if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
+                            if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
+                                m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+                            else
+                                m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+                        }
+                    }
                     if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
                 }
             }
@@ -289,13 +289,13 @@ int main(int argc, char** argv) {
     for (int i = optind; i < argc; ++i) {
         string file(argv[i]);
         if(file[0]=='@') {
-			string inName;
-			ifstream inList(file.substr(1,file.length()).c_str());
-			while(getline(inList,inName))	
-				inFiles.push_back(inName);
-		}
-		else
-			inFiles.push_back(file);
+            string inName;
+            ifstream inList(file.substr(1,file.length()).c_str());
+            while(getline(inList,inName))
+                inFiles.push_back(inName);
+        }
+        else
+            inFiles.push_back(file);
     }
 
     opt::nBuck = ((unsigned)1) << opt::nBits;
@@ -356,8 +356,8 @@ int main(int argc, char** argv) {
     double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
     alpha = 1.4426/(1 + 1.079/opt::nBuck);
 
-   	// For min canonical form
-	if(opt::canon) alpha/=2;
+    // For min canonical form
+    if(opt::canon) alpha/=2;
 
     for (unsigned j=0; j<opt::nBuck-1; j++)
         pEst += 1.0/((uint64_t)1<<tVec[j]);
