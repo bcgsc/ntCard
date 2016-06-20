@@ -90,48 +90,42 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
     return 2;
 }
 
+inline void ntComp(const uint64_t hVal, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter) {
+	if(hVal&(~((uint64_t)opt::nBuck-1))) {
+		uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+		size_t shVal=hVal&(opt::sBuck-1);
+		if(run0==16) {
+			if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
+				if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
+					m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+				else
+					m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+			}
+		}
+		if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+	}	
+}
+
 void getEfq(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
+        
         if(good && seq.length()>=opt::kmLen) {
             uint64_t hVal, fhVal=0, rhVal=0;
             string kmer = seq.substr(0, opt::kmLen);
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            if(hVal&(~((uint64_t)opt::nBuck-1))) {
-                uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-                size_t shVal=hVal&(opt::sBuck-1);
-                if(run0==16) {
-                    if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                        if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                            m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                        else
-                            m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                    }
-                }
-                if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-            }
+            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);            
+            ntComp(hVal,mVec,m1_Counter,m2_Counter);            
             for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
                 if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
                 else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                if(hVal&(~((uint64_t)opt::nBuck-1))) {
-                    uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-                    size_t shVal=hVal&(opt::sBuck-1);
-                    if(run0==16) {
-                        if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                            if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                                m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                            else
-                                m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                        }
-                    }
-                    if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-                }
+                ntComp(hVal,mVec,m1_Counter,m2_Counter);
             }
         }
+                
         good = getline(in, hseq);
     }
 }
@@ -145,35 +139,11 @@ void getEfa(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
             uint64_t hVal, fhVal=0, rhVal=0;
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
             else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            if(hVal&(~((uint64_t)opt::nBuck-1))) {
-                uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-                size_t shVal=hVal&(opt::sBuck-1);
-                if(run0==16) {
-                    if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                        if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                            m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                        else
-                            m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                    }
-                }
-                if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-            }
+            ntComp(hVal,mVec,m1_Counter,m2_Counter);
             for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
                 if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
                 else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                if(hVal&(~((uint64_t)opt::nBuck-1))) {
-                    uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-                    size_t shVal=hVal&(opt::sBuck-1);
-                    if(run0==16) {
-                        if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                            if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                                m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                            else
-                                m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                        }
-                    }
-                    if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-                }
+                ntComp(hVal,mVec,m1_Counter,m2_Counter);
             }
         }
         good = getline(in, hseq);
@@ -197,35 +167,11 @@ void getEsm(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
             uint64_t hVal, fhVal=0, rhVal=0;
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
             else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            if(hVal&(~((uint64_t)opt::nBuck-1))) {
-                uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-                size_t shVal=hVal&(opt::sBuck-1);
-                if(run0==16) {
-                    if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                        if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                            m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                        else
-                            m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                    }
-                }
-                if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-            }
+            ntComp(hVal,mVec,m1_Counter,m2_Counter);
             for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
                 if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
                 else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                if(hVal&(~((uint64_t)opt::nBuck-1))) {
-                    uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-                    size_t shVal=hVal&(opt::sBuck-1);
-                    if(run0==16) {
-                        if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                            if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                                m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                            else
-                                m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                        }
-                    }
-                    if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-                }
+                ntComp(hVal,mVec,m1_Counter,m2_Counter);
             }
         }
     } while(getline(in,samLine));
@@ -355,8 +301,6 @@ int main(int argc, char** argv) {
 
     double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
     alpha = 1.4426/(1 + 1.079/opt::nBuck);
-
-    // For min canonical form
     if(opt::canon) alpha/=2;
 
     for (unsigned j=0; j<opt::nBuck-1; j++)
@@ -375,13 +319,10 @@ int main(int argc, char** argv) {
     delete [] t1_Counter;
     delete [] t2_Counter;
 
-    double sRatio = 1.0*singlton/totton;
-    double eRatio = 1.0*singlton/((opt::sBuck-totton)*(log(opt::sBuck)-log(opt::sBuck-totton)));
-    double uEst = sRatio*eEst;
+	double eRatio = 1.0*singlton/((opt::sBuck-totton)*(log(opt::sBuck)-log(opt::sBuck-totton)));
     double sEst = eRatio*eEst;
 
     std::cout << "F0, Exp# of distnt kmers(k=" << opt::kmLen << "): " << (unsigned long long) eEst << "\n";
-    //std::cout << "f1, Exp# of unique kmers(k=" << opt::kmLen << "): " << (unsigned long long) uEst << "\n";
     std::cout << "f1, Exp# of unique kmers(k=" << opt::kmLen << "): " << (unsigned long long) sEst << "\n\n";
 
 
