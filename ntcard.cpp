@@ -48,6 +48,7 @@ unsigned nBuck=65536;
 unsigned nBits=16;
 unsigned sBuck=4194304;
 unsigned sBits=22;
+size_t totKmer=0;
 bool canon=false;
 bool samH=true;
 }
@@ -91,50 +92,52 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
 }
 
 inline void ntComp(const uint64_t hVal, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter) {
-	if(hVal&(~((uint64_t)opt::nBuck-1))) {
-		uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-		size_t shVal=hVal&(opt::sBuck-1);
-		if(run0==16) {
-			if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-				if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-					m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-				else
-					m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-			}
-		}
-		if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-	}	
+    if(hVal&(~((uint64_t)opt::nBuck-1))) {
+        uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
+        size_t shVal=hVal&(opt::sBuck-1);
+        if(run0==16) {
+            if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
+                if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
+                    m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+                else
+                    m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
+            }
+        }
+        if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+    }
 }
 
-void getEfq(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
+void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
-        
+
         if(good && seq.length()>=opt::kmLen) {
+            parkCount+=seq.length()-opt::kmLen+1;
             uint64_t hVal, fhVal=0, rhVal=0;
             string kmer = seq.substr(0, opt::kmLen);
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);            
-            ntComp(hVal,mVec,m1_Counter,m2_Counter);            
+            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
+            ntComp(hVal,mVec,m1_Counter,m2_Counter);
             for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
                 if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
                 else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
                 ntComp(hVal,mVec,m1_Counter,m2_Counter);
             }
         }
-                
+
         good = getline(in, hseq);
     }
 }
 
-void getEfa(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
+void getEfa(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         if(good && seq.length()>=opt::kmLen) {
+            parkCount+=seq.length()-opt::kmLen+1;
             string kmer = seq.substr(0, opt::kmLen);
             uint64_t hVal, fhVal=0, rhVal=0;
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
@@ -150,7 +153,7 @@ void getEfa(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
     }
 }
 
-void getEsm(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in, const std::string &samSeq) {
+void getEsm(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in, const std::string &samSeq) {
     std::string samLine,seq;
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
     if(opt::samH) {
@@ -163,6 +166,7 @@ void getEsm(uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstre
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
         if(seq.length()>=opt::kmLen) {
+            parkCount+=seq.length()-opt::kmLen+1;
             string kmer = seq.substr(0, opt::kmLen);
             uint64_t hVal, fhVal=0, rhVal=0;
             if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
@@ -260,6 +264,7 @@ int main(int argc, char** argv) {
 
     #pragma omp parallel
     {
+        size_t parkCount=0;
         uint8_t *mVec = new uint8_t [opt::nBuck];
         for (unsigned j=0; j<opt::nBuck; j++) mVec[j]=0;
 
@@ -269,15 +274,15 @@ int main(int argc, char** argv) {
 
         #pragma omp for schedule(dynamic) nowait
         for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-            std::ifstream in(inFiles[file_i].c_str());
+            std::ifstream in(inFiles[inFiles.size()-file_i-1].c_str());
             std::string samSeq;
             unsigned ftype = getftype(in,samSeq);
             if(ftype==0)
-                getEfq(mVec, m1_Counter, m2_Counter, in);
+                getEfq(parkCount, mVec, m1_Counter, m2_Counter, in);
             else if (ftype==1)
-                getEfa(mVec, m1_Counter, m2_Counter, in);
+                getEfa(parkCount, mVec, m1_Counter, m2_Counter, in);
             else if (ftype==2)
-                getEsm(mVec, m1_Counter, m2_Counter, in, samSeq);
+                getEsm(parkCount, mVec, m1_Counter, m2_Counter, in, samSeq);
             in.close();
         }
         #pragma omp critical(vmrg)
@@ -297,13 +302,16 @@ int main(int argc, char** argv) {
         }
         delete [] m1_Counter;
         delete [] m2_Counter;
+
+        #pragma omp atomic
+        opt::totKmer+=parkCount;
     }
 
     double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
     alpha = 1.4426/(1 + 1.079/opt::nBuck);
     if(opt::canon) alpha/=2;
 
-    for (unsigned j=0; j<opt::nBuck-1; j++)
+    for (unsigned j=0; j<opt::nBuck; j++)
         pEst += 1.0/((uint64_t)1<<tVec[j]);
     zEst = 1.0/pEst;
     eEst = alpha * opt::nBuck * opt::nBuck * zEst;
@@ -319,12 +327,12 @@ int main(int argc, char** argv) {
     delete [] t1_Counter;
     delete [] t2_Counter;
 
-	double eRatio = 1.0*singlton/((opt::sBuck-totton)*(log(opt::sBuck)-log(opt::sBuck-totton)));
+    double eRatio = 1.0*singlton/((opt::sBuck-totton)*(log(opt::sBuck)-log(opt::sBuck-totton)));
     double sEst = eRatio*eEst;
 
     std::cout << "F0, Exp# of distnt kmers(k=" << opt::kmLen << "): " << (unsigned long long) eEst << "\n";
-    std::cout << "f1, Exp# of unique kmers(k=" << opt::kmLen << "): " << (unsigned long long) sEst << "\n\n";
-
+    std::cout << "f1, Exp# of unique kmers(k=" << opt::kmLen << "): " << (unsigned long long) sEst << "\n";
+    std::cout << "F1, Exct# of total kmers(k=" << opt::kmLen << "): " << opt::totKmer << "\n\n";
 
     return 0;
 }
