@@ -15,7 +15,7 @@
 # include <omp.h>
 #endif
 
-#define PROGRAM "ntcard"
+#define PROGRAM "ntcardm"
 
 static const char VERSION_MESSAGE[] =
     PROGRAM " Version 1.0.0 \n"
@@ -93,9 +93,9 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
 inline void ntComp(const uint64_t hVal, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter) {
     if(hVal&(~((uint64_t)opt::nBuck-1))) {
         uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-        size_t shVal=hVal&(opt::sBuck-1);
         if(run0==16) {
-            if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
+			size_t shVal=hVal&(opt::sBuck-1);
+			if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
                 if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
                     m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
                 else

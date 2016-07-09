@@ -330,4 +330,52 @@ void NTMC64(uint64_t& fhVal, uint64_t& rhVal, const unsigned char charOut, const
     }
 }
 
+
+
+// ntHash ignoring non{A,C,G,T} 
+
+// canonical ntHash using pre-computed seed matrix (msTab)
+inline bool NTPC64(const char * kmerSeq, const unsigned k, uint64_t& hVal) {
+    uint64_t fhVal=0, rhVal=0;
+    for(unsigned i=0; i<k; i++) {
+		if(msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64]==seedN) return false;
+        fhVal ^= msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64];
+        if(msTab[(unsigned char)kmerSeq[i]+cpOff][i%64]==seedN) return false;
+        rhVal ^= msTab[(unsigned char)kmerSeq[i]+cpOff][i%64];
+    }
+    hVal = (rhVal<fhVal)? rhVal : fhVal;
+    return true;
+}
+
+// canonical ntHash using pre-computed seed matrix (msTab)
+inline bool NTPC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, uint64_t& rhVal, uint64_t& hVal) {
+    hVal=fhVal=rhVal=0;
+    for(unsigned i=0; i<k; i++) {
+		if(msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64]==seedN) return false;
+        fhVal ^= msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64];
+        if(msTab[(unsigned char)kmerSeq[i]+cpOff][i%64]==seedN) return false;
+        rhVal ^= msTab[(unsigned char)kmerSeq[i]+cpOff][i%64];
+    }	
+    hVal = (rhVal<fhVal)? rhVal : fhVal;
+    return true;
+}
+
+// canonical ntHash for sliding k-mers using pre-computed seed matrix (msTab)
+inline bool NTPC64(uint64_t& hVal, uint64_t& fhVal, uint64_t& rhVal, const unsigned char charOut, const unsigned char charIn, const unsigned k) {
+    if(seedTab[charIn]==seedN) return false;
+    fhVal = rol(fhVal, 1) ^ rol(seedTab[charOut], k) ^ seedTab[charIn];
+    rhVal = ror(rhVal, 1) ^ ror(seedTab[charOut+cpOff], 1) ^ rol(seedTab[charIn+cpOff], k-1);    
+    hVal = (rhVal<fhVal)? rhVal : fhVal;
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
 #endif
