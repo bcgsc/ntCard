@@ -360,6 +360,20 @@ inline bool NTPC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, uint
     return true;
 }
 
+// canonical ntHash using pre-computed seed matrix (msTab)
+/*inline unsigned NTPC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, uint64_t& rhVal, uint64_t& hVal) {
+    hVal=fhVal=rhVal=0;
+    for(unsigned i=0; i<k; i++) {
+		if(msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64]==seedN) return i;
+        fhVal ^= msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64];
+        if(msTab[(unsigned char)kmerSeq[i]+cpOff][i%64]==seedN) return i;
+        rhVal ^= msTab[(unsigned char)kmerSeq[i]+cpOff][i%64];
+    }	
+    hVal = (rhVal<fhVal)? rhVal : fhVal;
+    return 0;
+}*/
+
+
 // canonical ntHash for sliding k-mers using pre-computed seed matrix (msTab)
 inline bool NTPC64(uint64_t& hVal, uint64_t& fhVal, uint64_t& rhVal, const unsigned char charOut, const unsigned char charIn, const unsigned k) {
     if(seedTab[charIn]==seedN) return false;

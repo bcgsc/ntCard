@@ -117,7 +117,8 @@ void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream 
             string kmer;
             uint64_t hVal, fhVal=0, rhVal=0;
 
-            bool hGood=false;
+            /*bool hGood=false;
+            //unsigned posN=1;
             size_t seqIndex=0;
             while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
                 kmer = seq.substr(seqIndex, opt::kmLen);
@@ -125,19 +126,22 @@ void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream 
                 seqIndex++;
             }
             if(hGood) ntComp(hVal,mVec,m_Counter);
-            //for (unsigned i = seqIndex-1; i < seq.length() - opt::kmLen; i++) {
+            //for (unsigned i = seqIndex-1; i < seq.length() - opt::kmLen; i++) {*/
+            unsigned seqIndex=0;
             while(seqIndex<seq.length()-opt::kmLen +1) {
-                bool rollFlag=true;
-                if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {
-                    seqIndex+=opt::kmLen+1;
+				//bool rollFlag = true;
+                bool rollFlag = (seqIndex==0)? false : true;
+                
+                if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {                    
+                    seqIndex+=opt::kmLen;
                     rollFlag=false;
                 }
                 if(!rollFlag) {
-                    hGood=false;
-                    while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
+                    hGood=false;                    
+                    while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {                    
                         kmer = seq.substr(seqIndex, opt::kmLen);
                         hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal);
-                        seqIndex++;
+						seqIndex++;
                     }
                     if(hGood) ntComp(hVal,mVec,m_Counter);
                 }
@@ -146,7 +150,7 @@ void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream 
                     seqIndex++;
                     ntComp(hVal,mVec,m_Counter);
                 }
-            }
+            }           
         }
 
         good = getline(in, hseq);
@@ -424,7 +428,7 @@ int main(int argc, char** argv) {
 
     double F0_INANC= (opt::rBits*log(2)-log(X0)) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits));
     double f1_INANC = eRatio*F0_INANC;
-    double F0_kmerstr = 1.0*((size_t)1<<opt::sBits)*(log(X0)-opt::rBits*log(2))/(log(opt::rBuck-1)-opt::rBits*log(2));
+    //double F0_kmerstr = 1.0*((size_t)1<<opt::sBits)*(log(X0)-opt::rBits*log(2))/(log(opt::rBuck-1)-opt::rBits*log(2));
     //std::cout << "F0_kmerstr: " << (unsigned long long)F0_kmerstr << "\n";
     std::cout << "F0: " << (unsigned long long)F0_INANC << "\n";
     std::cout << "f1: " << (unsigned long long)f1_INANC << "\n";
