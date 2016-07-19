@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -71,6 +72,21 @@ static const struct option longopts[] = {
     { NULL, 0, NULL, 0 }
 };
 
+void printBin(uint64_t n) {
+    int count=0,count1=0;
+    while (++count<=64) {
+        if (n & ((uint64_t)1<<63)) {
+            printf("1");
+            ++count1;
+        }
+        else
+            printf("0");
+
+        n <<= 1;
+    }
+    printf(" count1=%d\n",count1);
+}
+
 unsigned getftype(std::ifstream &in, std::string &samSeq) {
     std::string hseq;
     getline(in,hseq);
@@ -94,14 +110,46 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
 }
 
 inline void ntComp(const uint64_t hVal, uint8_t *mVec, uint8_t *m_Counter) {
-    if(hVal&(~((uint64_t)opt::nBuck-1))) {
+    /*if(hVal&(~((uint64_t)opt::nBuck-1))) {
         uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
         if(run0==opt::sBits) {
             size_t shVal=hVal&(opt::rBuck-1);
             if(m_Counter[shVal]<255) ++m_Counter[shVal];
         }
         if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-    }
+    }*/
+    
+    if(hVal >> 63 - opt::sBits==1) {
+		size_t shVal=hVal&(opt::rBuck-1);
+		if(m_Counter[shVal]<255) ++m_Counter[shVal];
+	}
+}
+
+inline void ntRead(const string &seq, size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter) {
+	//parkCount+=seq.length()-opt::kmLen+1;
+	uint64_t hVal, fhVal=0, rhVal=0;
+	for(unsigned seqIndex=0;seqIndex<seq.length()-opt::kmLen+1;) {				
+		bool rollFlag=(seqIndex==0)?false:true;
+		if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {                    
+			seqIndex+=opt::kmLen;
+			rollFlag=false;
+		}
+		if(!rollFlag) {
+			bool hGood=false;                    
+			while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
+				string kmer = seq.substr(seqIndex, opt::kmLen);
+				unsigned locN=0;
+				hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal, locN);
+				seqIndex+=locN+1;
+			}
+			if(hGood) ntComp(hVal,mVec,m_Counter);                    
+		}
+		else { 
+			hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
+			seqIndex++;
+			ntComp(hVal,mVec,m_Counter);
+		}
+	}
 }
 
 void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in) {
@@ -110,117 +158,18 @@ void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream 
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
-
-        if(good && seq.length()>=opt::kmLen) {
-            //parkCount+=seq.length()-opt::kmLen+1;
-
-            string kmer;
-            uint64_t hVal, fhVal=0, rhVal=0;
-
-            /*bool hGood=false;
-            //unsigned posN=1;
-            size_t seqIndex=0;
-            while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
-                kmer = seq.substr(seqIndex, opt::kmLen);
-                hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal);
-                seqIndex++;
-            }
-            if(hGood) ntComp(hVal,mVec,m_Counter);
-            //for (unsigned i = seqIndex-1; i < seq.length() - opt::kmLen; i++) {*/
-            unsigned seqIndex=0;
-            while(seqIndex<seq.length()-opt::kmLen +1) {
-				//bool rollFlag = true;
-                bool rollFlag = (seqIndex==0)? false : true;
-                
-                if(seedTab[seq[seqIndex+opt::kmLen-1]]==seedN) {                    
-                    seqIndex+=opt::kmLen;
-                    rollFlag=false;
-                }
-                if(!rollFlag) {
-                    hGood=false;                    
-                    while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {                    
-                        kmer = seq.substr(seqIndex, opt::kmLen);
-                        hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal);
-						seqIndex++;
-                    }
-                    if(hGood) ntComp(hVal,mVec,m_Counter);
-                }
-                else {
-                    hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
-                    seqIndex++;
-                    ntComp(hVal,mVec,m_Counter);
-                }
-            }           
-        }
-
+        if(good && seq.length()>=opt::kmLen) 
+			ntRead(seq, parkCount, mVec, m_Counter);      
         good = getline(in, hseq);
     }
 }
-
-/*void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in) {
-    bool good = true;
-    for(string seq, hseq; good;) {
-        good = getline(in, seq);
-        good = getline(in, hseq);
-        good = getline(in, hseq);
-
-        if(good && seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            uint64_t hVal, fhVal=0, rhVal=0;
-            string kmer = seq.substr(0, opt::kmLen);
-            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            ntComp(hVal,mVec,m_Counter);
-            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                ntComp(hVal,mVec,m_Counter);
-            }
-        }
-
-        good = getline(in, hseq);
-    }
-}*/
-
-/*void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in) {
-    bool good = true;
-    for(string seq, hseq; good;) {
-        good = getline(in, seq);
-        good = getline(in, hseq);
-        good = getline(in, hseq);
-
-        if(good && seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            for (size_t i = 0; i < seq.length() - opt::kmLen +1 ; i++) {
-				string kmer = seq.substr(i, opt::kmLen);
-				if(opt::canon) getCanon(kmer);
-				uint64_t hVal=MurmurHash64A(kmer.c_str(),opt::kmLen,0);
-				ntComp(hVal,mVec,m_Counter);
-            }
-        }
-
-        good = getline(in, hseq);
-    }
-}*/
-
 
 void getEfa(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
-        if(good && seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            string kmer = seq.substr(0, opt::kmLen);
-            uint64_t hVal, fhVal=0, rhVal=0;
-            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            ntComp(hVal,mVec,m_Counter);
-            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                ntComp(hVal,mVec,m_Counter);
-            }
-        }
+        if(good && seq.length()>=opt::kmLen) 
+			ntRead(seq, parkCount, mVec, m_Counter);
         good = getline(in, hseq);
     }
 }
@@ -237,19 +186,8 @@ void getEsm(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream 
     do {
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
-        if(seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            string kmer = seq.substr(0, opt::kmLen);
-            uint64_t hVal, fhVal=0, rhVal=0;
-            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            ntComp(hVal,mVec,m_Counter);
-            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                ntComp(hVal,mVec,m_Counter);
-            }
-        }
+        if(seq.length()>=opt::kmLen) 
+            ntRead(seq, parkCount, mVec, m_Counter);        
     } while(getline(in,samLine));
 }
 
@@ -260,7 +198,11 @@ inline unsigned popCnt(unsigned char x) {
            & 0xf;
 }
 
+
+
 int main(int argc, char** argv) {
+	double sTime = omp_get_wtime();
+	
     bool die = false;
     for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
@@ -323,7 +265,8 @@ int main(int argc, char** argv) {
     opt::nBuck = ((unsigned)1) << opt::nBits;
 
     opt::rBuck = ((unsigned)1) << opt::rBits;
-
+       
+    
     uint8_t *tVec = new uint8_t [opt::nBuck];
     for (unsigned j=0; j<opt::nBuck; j++) tVec[j]=0;
 
@@ -434,6 +377,6 @@ int main(int argc, char** argv) {
     std::cout << "f1: " << (unsigned long long)f1_INANC << "\n";
 
 
-
+	cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
