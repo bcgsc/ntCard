@@ -331,14 +331,14 @@ void NTMC64(uint64_t& fhVal, uint64_t& rhVal, const unsigned char charOut, const
 }
 
 /* ignoring k-mers with containing nonACGT*/
-// canonical ntHash using pre-computed seed matrix (msTab)
-inline bool NTPC64(const char * kmerSeq, const unsigned k, uint64_t& hVal) {
-    uint64_t fhVal=0, rhVal=0;
-    for(unsigned i=0; i<k; i++) {
-		if(msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64]==seedN) return false;
-        fhVal ^= msTab[(unsigned char)kmerSeq[i]][(k-1-i)%64];
-        if(msTab[(unsigned char)kmerSeq[i]+cpOff][i%64]==seedN) return false;
-        rhVal ^= msTab[(unsigned char)kmerSeq[i]+cpOff][i%64];
+
+// canonical ntHash
+inline bool NTC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, uint64_t& rhVal, uint64_t& hVal, unsigned& locN) {
+    hVal=fhVal=rhVal=0;
+    for(int i=k-1; i>=0; i--) {
+		if(seedTab[(unsigned char)kmerSeq[i]]==seedN) {locN=i;return false;}
+        fhVal ^= rol(seedTab[(unsigned char)kmerSeq[i]], k-1-i);        
+        rhVal ^= rol(seedTab[(unsigned char)kmerSeq[i]+cpOff], i);        
     }
     hVal = (rhVal<fhVal)? rhVal : fhVal;
     return true;

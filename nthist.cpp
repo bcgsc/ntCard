@@ -10,7 +10,6 @@
 #include <cmath>
 
 #include "nthash.hpp"
-//#include "murmur.hpp"
 #include "Uncompress.h"
 
 #ifdef _OPENMP
@@ -44,10 +43,7 @@ using namespace std;
 
 namespace opt {
 unsigned nThrd=1;
-unsigned nHash=7;
 unsigned kmLen=64;
-unsigned nBuck=65536;
-unsigned nBits=16;
 unsigned rBuck=4194304;
 unsigned rBits=22	;
 unsigned sBits=16;
@@ -56,36 +52,20 @@ bool canon=false;
 bool samH=true;
 }
 
-static const char shortopts[] = "t:k:b:s:hc";
+static const char shortopts[] = "t:s:r:k:c";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
 static const struct option longopts[] = {
     { "threads",	required_argument, NULL, 't' },
     { "kmer",	required_argument, NULL, 'k' },
-    { "bit",	required_argument, NULL, 'b' },
-    { "sit",	required_argument, NULL, 's' },
-    { "hash",	required_argument, NULL, 'h' },
+    { "rbit",	required_argument, NULL, 'r' },
+    { "sbit",	required_argument, NULL, 's' },
     { "canonical",	no_argument, NULL, 'c' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
 };
-
-void printBin(uint64_t n) {
-    int count=0,count1=0;
-    while (++count<=64) {
-        if (n & ((uint64_t)1<<63)) {
-            printf("1");
-            ++count1;
-        }
-        else
-            printf("0");
-
-        n <<= 1;
-    }
-    printf(" count1=%d\n",count1);
-}
 
 unsigned getftype(std::ifstream &in, std::string &samSeq) {
     std::string hseq;
@@ -109,23 +89,14 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
     return 2;
 }
 
-inline void ntComp(const uint64_t hVal, uint8_t *mVec, uint8_t *m_Counter) {
-    /*if(hVal&(~((uint64_t)opt::nBuck-1))) {
-        uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));
-        if(run0==opt::sBits) {
-            size_t shVal=hVal&(opt::rBuck-1);
-            if(m_Counter[shVal]<255) ++m_Counter[shVal];
-        }
-        if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
-    }*/
-    
-    if(hVal >> 63 - opt::sBits==1) {
+inline void ntComp(const uint64_t hVal, uint8_t *m_Counter) {
+    if(hVal>>(63-opt::sBits) == 1) {
 		size_t shVal=hVal&(opt::rBuck-1);
 		if(m_Counter[shVal]<255) ++m_Counter[shVal];
 	}
 }
 
-inline void ntRead(const string &seq, size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter) {
+inline void ntRead(const string &seq, size_t &parkCount, uint8_t *m_Counter) {
 	//parkCount+=seq.length()-opt::kmLen+1;
 	uint64_t hVal, fhVal=0, rhVal=0;
 	for(unsigned seqIndex=0;seqIndex<seq.length()-opt::kmLen+1;) {				
@@ -139,42 +110,42 @@ inline void ntRead(const string &seq, size_t &parkCount, uint8_t *mVec, uint8_t 
 			while(!hGood && seqIndex<seq.length()-opt::kmLen+1) {
 				string kmer = seq.substr(seqIndex, opt::kmLen);
 				unsigned locN=0;
-				hGood = NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal, locN);
+				hGood = NTC64(kmer.c_str(), opt::kmLen, fhVal, rhVal, hVal, locN);
 				seqIndex+=locN+1;
 			}
-			if(hGood) ntComp(hVal,mVec,m_Counter);                    
+			if(hGood) ntComp(hVal,m_Counter);                    
 		}
 		else { 
-			hVal=NTPC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
+			hVal=NTC64(fhVal, rhVal, seq[seqIndex-1], seq[seqIndex-1+opt::kmLen], opt::kmLen);
 			seqIndex++;
-			ntComp(hVal,mVec,m_Counter);
+			ntComp(hVal,m_Counter);
 		}
 	}
 }
 
-void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in) {
+void getEfq(size_t &parkCount, uint8_t *m_Counter, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
         if(good && seq.length()>=opt::kmLen) 
-			ntRead(seq, parkCount, mVec, m_Counter);      
+			ntRead(seq, parkCount, m_Counter);      
         good = getline(in, hseq);
     }
 }
 
-void getEfa(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in) {
+void getEfa(size_t &parkCount, uint8_t *m_Counter, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         if(good && seq.length()>=opt::kmLen) 
-			ntRead(seq, parkCount, mVec, m_Counter);
+			ntRead(seq, parkCount, m_Counter);
         good = getline(in, hseq);
     }
 }
 
-void getEsm(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream &in, const std::string &samSeq) {
+void getEsm(size_t &parkCount, uint8_t *m_Counter, std::ifstream &in, const std::string &samSeq) {
     std::string samLine,seq;
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
     if(opt::samH) {
@@ -187,18 +158,9 @@ void getEsm(size_t &parkCount, uint8_t *mVec, uint8_t *m_Counter, std::ifstream 
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
         if(seq.length()>=opt::kmLen) 
-            ntRead(seq, parkCount, mVec, m_Counter);        
+            ntRead(seq, parkCount, m_Counter);        
     } while(getline(in,samLine));
 }
-
-inline unsigned popCnt(unsigned char x) {
-    return ((0x876543210 >>
-             (((0x4332322132212110 >> ((x & 0xF) << 2)) & 0xF) << 2)) >>
-            ((0x4332322132212110 >> (((x & 0xF0) >> 2)) & 0xF) << 2))
-           & 0xf;
-}
-
-
 
 int main(int argc, char** argv) {
 	double sTime = omp_get_wtime();
@@ -213,14 +175,11 @@ int main(int argc, char** argv) {
         case 't':
             arg >> opt::nThrd;
             break;
-        case 'b':
-            arg >> opt::nBits;
-            break;
         case 's':
-            arg >> opt::rBits;
+            arg >> opt::sBits;
             break;
-        case 'h':
-            arg >> opt::nHash;
+        case 'r':
+            arg >> opt::rBits;
             break;
         case 'k':
             arg >> opt::kmLen;
@@ -262,14 +221,8 @@ int main(int argc, char** argv) {
             inFiles.push_back(file);
     }
 
-    opt::nBuck = ((unsigned)1) << opt::nBits;
-
     opt::rBuck = ((unsigned)1) << opt::rBits;
        
-    
-    uint8_t *tVec = new uint8_t [opt::nBuck];
-    for (unsigned j=0; j<opt::nBuck; j++) tVec[j]=0;
-
     uint8_t *t_Counter = new uint8_t [opt::rBuck];
     for(size_t i=0; i<opt::rBuck; i++) t_Counter[i]=0;
 
@@ -280,8 +233,6 @@ int main(int argc, char** argv) {
     #pragma omp parallel
     {
         size_t parkCount=0;
-        uint8_t *mVec = new uint8_t [opt::nBuck];
-        for (unsigned j=0; j<opt::nBuck; j++) mVec[j]=0;
 
         uint8_t *m_Counter = new uint8_t [opt::rBuck];
         for(size_t i=0; i<opt::rBuck; i++) m_Counter[i]=0;
@@ -292,21 +243,13 @@ int main(int argc, char** argv) {
             std::string samSeq;
             unsigned ftype = getftype(in,samSeq);
             if(ftype==0)
-                getEfq(parkCount, mVec, m_Counter, in);
+                getEfq(parkCount, m_Counter, in);
             else if (ftype==1)
-                getEfa(parkCount, mVec, m_Counter, in);
+                getEfa(parkCount, m_Counter, in);
             else if (ftype==2)
-                getEsm(parkCount, mVec, m_Counter, in, samSeq);
+                getEsm(parkCount, m_Counter, in, samSeq);
             in.close();
         }
-        #pragma omp critical(vmrg)
-        {
-            for (unsigned j=0; j<opt::nBuck; j++)
-                if(tVec[j]<mVec[j])
-                    tVec[j]=mVec[j];
-        }
-        delete [] mVec;
-
         #pragma omp critical(cmrg)
         {
             for(size_t i=0; i<opt::rBuck; i++) {
@@ -320,16 +263,6 @@ int main(int argc, char** argv) {
         opt::totKmer+=parkCount;
     }
 
-    double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
-    alpha = 1.4426/(1 + 1.079/opt::nBuck);
-    if(opt::canon) alpha/=2;
-
-    for (unsigned j=0; j<opt::nBuck; j++)
-        pEst += 1.0/((uint64_t)1<<tVec[j]);
-    zEst = 1.0/pEst;
-    eEst = alpha * opt::nBuck * opt::nBuck * zEst;
-
-    delete [] tVec;
 
     unsigned singlton=0,totton=0;
     unsigned kHist[256];
@@ -343,36 +276,16 @@ int main(int argc, char** argv) {
 
     delete [] t_Counter;
 
-    double eRatio = 1.0*singlton/((opt::rBuck-totton)*(log(opt::rBuck)-log(opt::rBuck-totton)));
-    double sEst = eRatio*eEst;
-
-    std::cout << "F0, HLL Exp# of distnt kmers(k=" << opt::kmLen << "): " << (unsigned long long) eEst << "\n";
-    std::cout << "f1, HLL Exp# of unique kmers(k=" << opt::kmLen << "): " << (unsigned long long) sEst << "\n";
-    std::cout << "F1, HLL Exct# of total kmers(k=" << opt::kmLen << "): " << opt::totKmer << "\n\n";
-
-    /*for(size_t i=1; i<32; i++) {
-    	double eRatio = 1.0*kHist[i]/((opt::rBuck-totton)*(log(opt::rBuck)-log(opt::rBuck-totton)));
-    	double sEst = eRatio*eEst;
-    	std::cout << i << ": " << (unsigned long long)sEst << "\n";
-    }*/
-
-    //size_t F0= totton * ((size_t)1<<16);
-    //std::cout << "F0: " << F0 << "\n";
-
     for(size_t i=0; i<33; i++) {
-        //double eRatio = 1.0*kHist[i]/((opt::rBuck-totton)*(log(opt::rBuck)-log(opt::rBuck-totton)));
-        //double sEst = eRatio*F0;
-        //std::cout << i << ": " << (unsigned long long)sEst << "\n";
         std::cout << i << ": " << kHist[i] << "\n";
     }
     std::cout << "F0_sample or X(!=0): " << totton << "\n";
 
     size_t X0=opt::rBuck-totton;
 
+	double eRatio = 1.0*singlton/((opt::rBuck-totton)*(log(opt::rBuck)-log(opt::rBuck-totton)));
     double F0_INANC= (opt::rBits*log(2)-log(X0)) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits));
-    double f1_INANC = eRatio*F0_INANC;
-    //double F0_kmerstr = 1.0*((size_t)1<<opt::sBits)*(log(X0)-opt::rBits*log(2))/(log(opt::rBuck-1)-opt::rBits*log(2));
-    //std::cout << "F0_kmerstr: " << (unsigned long long)F0_kmerstr << "\n";
+    double f1_INANC = eRatio*F0_INANC;    
     std::cout << "F0: " << (unsigned long long)F0_INANC << "\n";
     std::cout << "f1: " << (unsigned long long)f1_INANC << "\n";
 
