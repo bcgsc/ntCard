@@ -1,8 +1,8 @@
 ntCard 
 =
-ntCard is a streaming algorithm for cardinality estimation in genomics datasets.
+ntCard is a streaming algorithm for cardinality estimation in genomics datasets. As iput it takes file(s) is fastq, fastq, sam , or bam formats and computes the k-mer coverage frequency histogram.  
 
-# Build the binary
+# Build the binary for ntcard
 Run:
 ```
 $ make
