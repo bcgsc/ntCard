@@ -1,24 +1,19 @@
-CXX=g++
+CXX=g++ -Wall
 OPTFLAGS=-O3 -fopenmp
 LIBPATH=-Ilib -ldl
 
-all:ntcard ntcardm nthist
+all:ntcard
 
-SRCS=ntcard.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
+COMMON_SRC=lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp
 
-SRCSM=ntcardm.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
-
-SRCSH=nthist.cpp lib/Uncompress.cpp lib/SignalHandler.cpp lib/Fcontrol.cpp 
+SRCS=ntcard.cpp $(COMMON_SRC)
 
 ntcard:$(SRCS)
 	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^
 
-ntcardm:$(SRCSM)
-	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^
-
-nthist:$(SRCSH)
-	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^
+nthll:nthll.cpp $(COMMON_SRC)
+	$(CXX) $(OPTFLAGS) $(LIBPATH) -o $@ $^ 
 
 clean:
-	rm ntcard ntcardm nthist
+	rm ntcard
 

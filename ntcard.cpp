@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -8,7 +9,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "nthash.hpp"
+#include "ntHashIterator.hpp"
 #include "Uncompress.h"
 
 #ifdef _OPENMP
@@ -31,7 +32,8 @@ static const char USAGE_MESSAGE[] =
     "\n"
     "  -t, --threads=N	use N parallel threads [1]\n"
     "  -k, --kmer=N	the length of kmer [64]\n"
-    "  -c, --canonical	get the estimate for cannonical form\n"
+    "  -c, --cov=N	the maximum coverage of kmer in output [64]\n"
+
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
     "\n"
@@ -42,28 +44,26 @@ using namespace std;
 
 namespace opt {
 unsigned nThrd=1;
-unsigned nHash=7;
 unsigned kmLen=64;
-unsigned nBuck=65536;
-unsigned nBits=16;
-unsigned sBuck=4194304;
-unsigned sBits=22;
-size_t totKmer=0;
-bool canon=false;
+unsigned rBuck=33554432;
+unsigned rBits=26;
+unsigned sBits=11;
+unsigned sMask=1023;
+unsigned covMax=64;
+unsigned nSamp=2;
 bool samH=true;
 }
 
-static const char shortopts[] = "t:k:b:s:hc";
+static const char shortopts[] = "t:s:r:k:c:f:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
 static const struct option longopts[] = {
     { "threads",	required_argument, NULL, 't' },
     { "kmer",	required_argument, NULL, 'k' },
-    { "bit",	required_argument, NULL, 'b' },
-    { "sit",	required_argument, NULL, 's' },
-    { "hash",	required_argument, NULL, 'h' },
-    { "canonical",	no_argument, NULL, 'c' },
+    { "cov",	required_argument, NULL, 'c' },
+    { "rbit",	required_argument, NULL, 'r' },
+    { "sbit",	required_argument, NULL, 's' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
@@ -91,69 +91,53 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
     return 2;
 }
 
-inline void ntComp(const uint64_t hVal, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter) {
-    if(hVal&(~((uint64_t)opt::nBuck-1))) {
-        uint8_t run0 = __builtin_clzll(hVal&(~((uint64_t)opt::nBuck-1)));        
-        if(run0==16) {
-			size_t shVal=hVal&(opt::sBuck-1);
-            if((m2_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0) {
-                if((m1_Counter[shVal / 8] & (1 << (7 - shVal % 8))) == 0)
-                    m1_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-                else
-                    m2_Counter[shVal/8] |= (1 << (7 - shVal % 8));
-            }
-        }
-        if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
+inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
+    uint64_t indBit=opt::nSamp;
+    if(hVal>>(63-opt::sBits) == 1) indBit=0;
+    if(hVal>>(63-(opt::sBits-1)) == opt::sMask) indBit=1;
+    if(indBit < opt::nSamp) {
+        size_t shVal=hVal&(opt::rBuck-1);
+        #pragma omp atomic
+        ++t_Counter[indBit*opt::rBuck+shVal];
+    }
+
+}
+
+inline void ntRead(const string &seq, uint16_t *t_Counter) {
+    ntHashIterator itr(seq, opt::kmLen);
+    while (itr != itr.end()) {
+        ntComp((*itr),t_Counter);
+        ++itr;
     }
 }
 
-void getEfq(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
+void getEfq(std::ifstream &in, uint16_t *t_Counter) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
-
-        if(good && seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            uint64_t hVal, fhVal=0, rhVal=0;
-            string kmer = seq.substr(0, opt::kmLen);
-            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            ntComp(hVal,mVec,m1_Counter,m2_Counter);
-            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                ntComp(hVal,mVec,m1_Counter,m2_Counter);
-            }
-        }
-
+        if(good && seq.length()>=opt::kmLen)
+            ntRead(seq, t_Counter);
         good = getline(in, hseq);
     }
 }
 
-void getEfa(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in) {
+void getEfa(std::ifstream &in, uint16_t *t_Counter) {
     bool good = true;
     for(string seq, hseq; good;) {
+        string line;
         good = getline(in, seq);
-        if(good && seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            string kmer = seq.substr(0, opt::kmLen);
-            uint64_t hVal, fhVal=0, rhVal=0;
-            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            ntComp(hVal,mVec,m1_Counter,m2_Counter);
-            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                ntComp(hVal,mVec,m1_Counter,m2_Counter);
-            }
+        while(good&&seq[0]!='>') {
+            line+=seq;
+            good = getline(in, seq);
         }
-        good = getline(in, hseq);
+        if(line.length()>=opt::kmLen)
+            ntRead(line, t_Counter);
     }
 }
 
-void getEsm(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_Counter, std::ifstream &in, const std::string &samSeq) {
+void getEsm(std::ifstream &in, const std::string &samSeq, uint16_t *t_Counter) {
     std::string samLine,seq;
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
     if(opt::samH) {
@@ -165,30 +149,15 @@ void getEsm(size_t &parkCount, uint8_t *mVec, uint8_t *m1_Counter, uint8_t *m2_C
     do {
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
-        if(seq.length()>=opt::kmLen) {
-            parkCount+=seq.length()-opt::kmLen+1;
-            string kmer = seq.substr(0, opt::kmLen);
-            uint64_t hVal, fhVal=0, rhVal=0;
-            if(!opt::canon) hVal=NTP64(kmer.c_str(), opt::kmLen);
-            else hVal=NTPC64(kmer.c_str(), opt::kmLen, fhVal, rhVal);
-            ntComp(hVal,mVec,m1_Counter,m2_Counter);
-            for (size_t i = 0; i < seq.length() - opt::kmLen; i++) {
-                if(!opt::canon) hVal = NTP64(hVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                else hVal=NTPC64(fhVal, rhVal, seq[i], seq[i+opt::kmLen], opt::kmLen);
-                ntComp(hVal,mVec,m1_Counter,m2_Counter);
-            }
-        }
+        if(seq.length()>=opt::kmLen)
+            ntRead(seq, t_Counter);
     } while(getline(in,samLine));
 }
 
-inline unsigned popCnt(unsigned char x) {
-    return ((0x876543210 >>
-             (((0x4332322132212110 >> ((x & 0xF) << 2)) & 0xF) << 2)) >>
-            ((0x4332322132212110 >> (((x & 0xF0) >> 2)) & 0xF) << 2))
-           & 0xf;
-}
-
 int main(int argc, char** argv) {
+
+    double sTime = omp_get_wtime();
+
     bool die = false;
     for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
@@ -199,20 +168,17 @@ int main(int argc, char** argv) {
         case 't':
             arg >> opt::nThrd;
             break;
-        case 'b':
-            arg >> opt::nBits;
-            break;
         case 's':
             arg >> opt::sBits;
             break;
-        case 'h':
-            arg >> opt::nHash;
+        case 'r':
+            arg >> opt::rBits;
+            break;
+        case 'c':
+            arg >> opt::covMax;
             break;
         case 'k':
             arg >> opt::kmLen;
-            break;
-        case 'c':
-            opt::canon=true;
             break;
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
@@ -248,99 +214,76 @@ int main(int argc, char** argv) {
             inFiles.push_back(file);
     }
 
-    opt::nBuck = ((unsigned)1) << opt::nBits;
-    opt::sBuck = ((unsigned)1) << opt::sBits;
+    opt::rBuck = ((unsigned)1) << opt::rBits;
+    opt::sMask = (((unsigned)1) << (opt::sBits-1))-1;
 
-    uint8_t *tVec = new uint8_t [opt::nBuck];
-    for (unsigned j=0; j<opt::nBuck; j++) tVec[j]=0;
-
-    uint8_t *t1_Counter = new uint8_t [(opt::sBuck + 7)/8];
-    uint8_t *t2_Counter = new uint8_t [(opt::sBuck + 7)/8];
-    for(size_t i=0; i<(opt::sBuck + 7)/8; i++) t1_Counter[i]=t2_Counter[i]=0;
+    uint16_t *t_Counter = new uint16_t [opt::nSamp*opt::rBuck];
+    for(size_t i=0; i<opt::nSamp; i++)
+        for(size_t j=0; j<opt::rBuck; j++)
+            t_Counter[i*opt::rBuck+j]=0;
 
 #ifdef _OPENMP
     omp_set_num_threads(opt::nThrd);
 #endif
 
-	int nthreads, tid; //verbose
-
-    #pragma omp parallel
-    {
-        string fname;
-        size_t parkCount=0;
-        uint8_t *mVec = new uint8_t [opt::nBuck];
-        for (unsigned j=0; j<opt::nBuck; j++) mVec[j]=0;
-
-        uint8_t *m1_Counter = new uint8_t [(opt::sBuck + 7)/8];
-        uint8_t *m2_Counter = new uint8_t [(opt::sBuck + 7)/8];
-        for(size_t i=0; i<(opt::sBuck + 7)/8; i++) m1_Counter[i]=m2_Counter[i]=0;
-
-        #pragma omp for schedule(dynamic) nowait
-        for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-			fname = inFiles[inFiles.size()-file_i-1]; // verbose
-            std::ifstream in(inFiles[inFiles.size()-file_i-1].c_str());
-            std::string samSeq;
-            unsigned ftype = getftype(in,samSeq);
-            if(ftype==0)
-                getEfq(parkCount, mVec, m1_Counter, m2_Counter, in);
-            else if (ftype==1)
-                getEfa(parkCount, mVec, m1_Counter, m2_Counter, in);
-            else if (ftype==2)
-                getEsm(parkCount, mVec, m1_Counter, m2_Counter, in, samSeq);
-            in.close();
-        }
-        #pragma omp critical(vmrg)
-        {
-            for (unsigned j=0; j<opt::nBuck; j++)
-                if(tVec[j]<mVec[j])
-                    tVec[j]=mVec[j];
-        }
-        delete [] mVec;
-
-        #pragma omp critical(cmrg)
-        {
-            for(size_t i=0; i<(opt::sBuck + 7)/8; i++) {
-                t2_Counter[i] |= m2_Counter[i] | (m1_Counter[i]&t1_Counter[i]);
-                t1_Counter[i] |= m1_Counter[i];
-            }
-        }
-        delete [] m1_Counter;
-        delete [] m2_Counter;
-
-        #pragma omp atomic
-        opt::totKmer+=parkCount;
-
-		nthreads = omp_get_num_threads(); // verbose
-		tid = omp_get_thread_num(); // verbose
-        printf("%s thread%d/%d done!\n", fname.c_str(),tid, nthreads);// verbose
+    #pragma omp parallel for schedule(dynamic)
+    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+        std::ifstream in(inFiles[file_i].c_str());
+        std::string samSeq;
+        unsigned ftype = getftype(in,samSeq);
+        if(ftype==0)
+            getEfq(in, t_Counter);
+        else if (ftype==1)
+            getEfa(in, t_Counter);
+        else if (ftype==2)
+            getEsm(in, samSeq, t_Counter);
+        in.close();
     }
 
-    double pEst = 0.0, zEst = 0.0, eEst = 0.0, alpha = 0.0;
-    alpha = 1.4426/(1 + 1.079/opt::nBuck);
-    if(opt::canon) alpha/=2;
 
-    for (unsigned j=0; j<opt::nBuck; j++)
-        pEst += 1.0/((uint64_t)1<<tVec[j]);
-    zEst = 1.0/pEst;
-    eEst = alpha * opt::nBuck * opt::nBuck * zEst;
-
-    delete [] tVec;
-
-    unsigned singlton=0,totton=0;
-    for(size_t i=0; i<(opt::sBuck + 7)/8; i++) {
-        singlton+=popCnt(t1_Counter[i]&(~t2_Counter[i]));
-        totton+=popCnt(t1_Counter[i]|t2_Counter[i]);
+    unsigned singlton[opt::nSamp],totton[opt::nSamp];
+    for(size_t i=0; i<opt::nSamp; i++) {
+        singlton[i]=0;
+        totton[i]=0;
     }
 
-    delete [] t1_Counter;
-    delete [] t2_Counter;
+    unsigned x[opt::nSamp][65536];
+    for(size_t i=0; i<opt::nSamp; i++)
+        for(size_t j=0; j<65536; j++)
+            x[i][j]=0;
 
-    double eRatio = 1.0*singlton/((opt::sBuck-totton)*(log(opt::sBuck)-log(opt::sBuck-totton)));
-    double sEst = eRatio*eEst;
+    for(size_t i=0; i<opt::nSamp; i++)
+        for(size_t j=0; j<opt::rBuck; j++) {
+            ++x[i][t_Counter[i*opt::rBuck+j]];
+            if(t_Counter[i*opt::rBuck+j]==1) ++singlton[i];
+            if(t_Counter[i*opt::rBuck+j]) ++totton[i];
+        }
 
-    std::cout << "F0, Exp# of distnt kmers(k=" << opt::kmLen << "): " << (unsigned long long) eEst << "\n";
-    std::cout << "f1, Exp# of unique kmers(k=" << opt::kmLen << "): " << (unsigned long long) sEst << "\n";
-    std::cout << "F1, Exct# of total kmers(k=" << opt::kmLen << "): " << opt::totKmer << "\n\n";
+    delete [] t_Counter;
 
+    double xMean[65536];
+    for(size_t i=0; i<65536; i++) xMean[i]=0.0;
+    for(size_t i=0; i<65536; i++) {
+        for(size_t j=0; j<opt::nSamp; j++) {
+            xMean[i]+=x[j][i];
+        }
+        xMean[i] /= 2.0;
+    }
+
+    double f[65536];
+    for(size_t i=0; i<65536; i++) f[i]=0;
+    f[1]= -1.0*xMean[1]/(xMean[0]*(log(xMean[0])-opt::rBits*log(2)));
+    for(size_t i=2; i<65536; i++) {
+        double sum=0.0;
+        for(size_t j=1; j<i; j++)
+            sum+=j*xMean[i-j]*f[j];
+        f[i]=-1.0*xMean[i]/(xMean[0]*(log(xMean[0])-opt::rBits*log(2)))-sum/(i*xMean[0]);
+    }
+    double F0= (opt::rBits*log(2)-log(xMean[0])) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits));
+    std::cout << "F0: " << (long long)F0 << "\n";
+    for(size_t i=1; i<= opt::covMax; i++) {
+        std::cout << "f" << i << ": " << abs((long long)(f[i]*F0)) << "\n";
+    }
+    cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
