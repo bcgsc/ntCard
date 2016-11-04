@@ -46,7 +46,7 @@ namespace opt {
 unsigned nThrd=1;
 unsigned kmLen=64;
 unsigned rBuck=33554432;
-unsigned rBits=26;
+unsigned rBits=27;
 unsigned sBits=11;
 unsigned sMask=1023;
 unsigned covMax=64;
@@ -68,6 +68,11 @@ static const struct option longopts[] = {
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
 };
+
+size_t getInf(const char* inFile) {
+    std::ifstream in(inFile, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg();
+}
 
 unsigned getftype(std::ifstream &in, std::string &samSeq) {
     std::string hseq;
@@ -94,7 +99,7 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
 inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
     uint64_t indBit=opt::nSamp;
     if(hVal>>(63-opt::sBits) == 1) indBit=0;
-    if(hVal>>(63-(opt::sBits-1)) == opt::sMask) indBit=1;
+    if(hVal>>(64-opt::sBits) == opt::sMask) indBit=1;
     if(indBit < opt::nSamp) {
         size_t shVal=hVal&(opt::rBuck-1);
         #pragma omp atomic
@@ -103,27 +108,28 @@ inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
 
 }
 
-inline void ntRead(const string &seq, uint16_t *t_Counter) {
+inline void ntRead(const string &seq, uint16_t *t_Counter, size_t &totKmer) {
     ntHashIterator itr(seq, opt::kmLen);
     while (itr != itr.end()) {
         ntComp((*itr),t_Counter);
         ++itr;
+        ++totKmer;
     }
 }
 
-void getEfq(std::ifstream &in, uint16_t *t_Counter) {
+void getEfq(std::ifstream &in, uint16_t *t_Counter, size_t &totKmer) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
         if(good && seq.length()>=opt::kmLen)
-            ntRead(seq, t_Counter);
+            ntRead(seq, t_Counter, totKmer);
         good = getline(in, hseq);
     }
 }
 
-void getEfa(std::ifstream &in, uint16_t *t_Counter) {
+void getEfa(std::ifstream &in, uint16_t *t_Counter, size_t &totKmer) {
     bool good = true;
     for(string seq, hseq; good;) {
         string line;
@@ -133,11 +139,11 @@ void getEfa(std::ifstream &in, uint16_t *t_Counter) {
             good = getline(in, seq);
         }
         if(line.length()>=opt::kmLen)
-            ntRead(line, t_Counter);
+            ntRead(line, t_Counter, totKmer);
     }
 }
 
-void getEsm(std::ifstream &in, const std::string &samSeq, uint16_t *t_Counter) {
+void getEsm(std::ifstream &in, const std::string &samSeq, uint16_t *t_Counter, size_t &totKmer) {
     std::string samLine,seq;
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
     if(opt::samH) {
@@ -150,7 +156,7 @@ void getEsm(std::ifstream &in, const std::string &samSeq, uint16_t *t_Counter) {
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
         if(seq.length()>=opt::kmLen)
-            ntRead(seq, t_Counter);
+            ntRead(seq, t_Counter, totKmer);
     } while(getline(in,samLine));
 }
 
@@ -214,13 +220,15 @@ int main(int argc, char** argv) {
             inFiles.push_back(file);
     }
 
+    size_t totalSize=0;
+    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i)
+        totalSize += getInf(inFiles[file_i].c_str());
+    if(totalSize<50000000000) opt::sBits=7;
+
+    size_t totalKmers=0;
     opt::rBuck = ((unsigned)1) << opt::rBits;
     opt::sMask = (((unsigned)1) << (opt::sBits-1))-1;
-
-    uint16_t *t_Counter = new uint16_t [opt::nSamp*opt::rBuck];
-    for(size_t i=0; i<opt::nSamp; i++)
-        for(size_t j=0; j<opt::rBuck; j++)
-            t_Counter[i*opt::rBuck+j]=0;
+    uint16_t *t_Counter = new uint16_t [opt::nSamp*opt::rBuck]();
 
 #ifdef _OPENMP
     omp_set_num_threads(opt::nThrd);
@@ -228,23 +236,19 @@ int main(int argc, char** argv) {
 
     #pragma omp parallel for schedule(dynamic)
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
+        size_t totKmer=0;
         std::ifstream in(inFiles[file_i].c_str());
         std::string samSeq;
         unsigned ftype = getftype(in,samSeq);
         if(ftype==0)
-            getEfq(in, t_Counter);
+            getEfq(in, t_Counter, totKmer);
         else if (ftype==1)
-            getEfa(in, t_Counter);
+            getEfa(in, t_Counter, totKmer);
         else if (ftype==2)
-            getEsm(in, samSeq, t_Counter);
+            getEsm(in, samSeq, t_Counter, totKmer);
         in.close();
-    }
-
-
-    unsigned singlton[opt::nSamp],totton[opt::nSamp];
-    for(size_t i=0; i<opt::nSamp; i++) {
-        singlton[i]=0;
-        totton[i]=0;
+        #pragma omp atomic
+        totalKmers+=totKmer;
     }
 
     unsigned x[opt::nSamp][65536];
@@ -253,21 +257,17 @@ int main(int argc, char** argv) {
             x[i][j]=0;
 
     for(size_t i=0; i<opt::nSamp; i++)
-        for(size_t j=0; j<opt::rBuck; j++) {
+        for(size_t j=0; j<opt::rBuck; j++)
             ++x[i][t_Counter[i*opt::rBuck+j]];
-            if(t_Counter[i*opt::rBuck+j]==1) ++singlton[i];
-            if(t_Counter[i*opt::rBuck+j]) ++totton[i];
-        }
 
     delete [] t_Counter;
 
     double xMean[65536];
     for(size_t i=0; i<65536; i++) xMean[i]=0.0;
     for(size_t i=0; i<65536; i++) {
-        for(size_t j=0; j<opt::nSamp; j++) {
+        for(size_t j=0; j<opt::nSamp; j++)
             xMean[i]+=x[j][i];
-        }
-        xMean[i] /= 2.0;
+        xMean[i] /= 1.0*opt::nSamp;
     }
 
     double f[65536];
@@ -280,10 +280,11 @@ int main(int argc, char** argv) {
         f[i]=-1.0*xMean[i]/(xMean[0]*(log(xMean[0])-opt::rBits*log(2)))-sum/(i*xMean[0]);
     }
     double F0= (opt::rBits*log(2)-log(xMean[0])) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits));
-    std::cout << "F0: " << (long long)F0 << "\n";
+    std::cout << "F1\t" << totalKmers << "\n";
+    std::cout << "F0\t" << (long long)F0 << "\n";
     for(size_t i=1; i<= opt::covMax; i++) {
-        std::cout << "f" << i << ": " << abs((long long)(f[i]*F0)) << "\n";
+        std::cout << "f" << i << "\t" << abs((long long)(f[i]*F0)) << "\n";
     }
-    cerr << "time(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
+    std::cerr << "Runtime(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
