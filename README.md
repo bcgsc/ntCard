@@ -21,3 +21,9 @@ For example to run ntcard on a test file `reads.fastq` with `k=50`:
 ```
 $ ntcard -k50 reads.fastq 
 ```
+
+To run ntcard on a list of files, `lib.in`, containing (input file names in each row) as input with `k=144` and 12 threads:
+```
+$ ntcard -k144 -t12 @lib.in 
+```
+
