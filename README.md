@@ -22,7 +22,12 @@ For example to run ntcard on a test file `reads.fastq` with `k=50`:
 $ ntcard -k50 reads.fastq 
 ```
 
-To run ntcard on a list of files, `lib.in`, containing (input file names in each row) as input with `k=144` and 12 threads:
+As another example, to run ntcard on `5` input files file_1.fq.gz, file_2.fa, file_3.sam, file_4.bam, file_5.fq with `k=64` and 6 threads and maximum output of frequencies `c=100`:
+```
+$ ntcard -k64 -c100 -t6 file_1.fq.gz file_2.fa file_3.sam file_4.bam file_5.fq
+```
+
+If we have a list of input files `lib.in` with input file names in each row and want to run ntCard with `k=144` and 12 threads:
 ```
 $ ntcard -k144 -t12 @lib.in 
 ```
