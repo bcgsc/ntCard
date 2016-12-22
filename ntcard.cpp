@@ -103,6 +103,7 @@ inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
     if(hVal>>(64-opt::sBits) == opt::sMask) indBit=1;
     if(indBit < opt::nSamp) {
         size_t shVal=hVal&(opt::rBuck-1);
+        #pragma omp atomic
         ++t_Counter[indBit*opt::rBuck+shVal];
     }
 
@@ -122,12 +123,12 @@ inline void ntRead(const string &seq, const std::vector<unsigned> &kList, uint16
 void getEfq(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
     bool good = true;
     for(string seq, hseq; good;) {
-        good = getline(in, seq);
-        good = getline(in, hseq);
-        good = getline(in, hseq);
+        good = static_cast<bool>(getline(in, seq));
+        good = static_cast<bool>(getline(in, hseq));
+        good = static_cast<bool>(getline(in, hseq));
         if(good)
             ntRead(seq, kList, t_Counter, totKmer);
-        good = getline(in, hseq);
+        good = static_cast<bool>(getline(in, hseq));
     }
 }
 
@@ -135,10 +136,10 @@ void getEfa(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_C
     bool good = true;
     for(string seq, hseq; good;) {
         string line;
-        good = getline(in, seq);
+        good = static_cast<bool>(getline(in, seq));
         while(good&&seq[0]!='>') {
             line+=seq;
-            good = getline(in, seq);
+            good = static_cast<bool>(getline(in, seq));
         }
         ntRead(line, kList, t_Counter, totKmer);
     }
