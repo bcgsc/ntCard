@@ -21,7 +21,10 @@ For example to run ntcard on a test file `reads.fastq` with `k=50`:
 ```
 $ ntcard -k50 reads.fastq 
 ```
-
+To run ntcard on a test file `reads.fastq` with multiple k's `k=32,64,96,128` use:
+```
+$ ntcard -k32,64,96,128 reads.fastq 
+```
 As another example, to run ntcard on `5` input files file_1.fq.gz, file_2.fa, file_3.sam, file_4.bam, file_5.fq with `k=64` and 6 threads and maximum output of frequencies `c=100`:
 ```
 $ ntcard -k64 -c100 -t6 file_1.fq.gz file_2.fa file_3.sam file_4.bam file_5.fq
