@@ -45,16 +45,17 @@ using namespace std;
 namespace opt {
 unsigned nThrd=1;
 unsigned kmLen=64;
-unsigned rBuck=33554432;
+unsigned rBuck;
 unsigned rBits=27;
 unsigned sBits=11;
-unsigned sMask=1023;
+unsigned sMask;
 unsigned covMax=64;
 unsigned nSamp=2;
+unsigned nK=0;
 bool samH=true;
 }
 
-static const char shortopts[] = "t:s:r:k:c:f:";
+static const char shortopts[] = "t:s:r:k:c:l:f:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -102,34 +103,35 @@ inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
     if(hVal>>(64-opt::sBits) == opt::sMask) indBit=1;
     if(indBit < opt::nSamp) {
         size_t shVal=hVal&(opt::rBuck-1);
-        #pragma omp atomic
         ++t_Counter[indBit*opt::rBuck+shVal];
     }
 
 }
 
-inline void ntRead(const string &seq, uint16_t *t_Counter, size_t &totKmer) {
-    ntHashIterator itr(seq, opt::kmLen);
-    while (itr != itr.end()) {
-        ntComp((*itr),t_Counter);
-        ++itr;
-        ++totKmer;
+inline void ntRead(const string &seq, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
+    for(unsigned k=0; k<kList.size(); k++) {
+        ntHashIterator itr(seq, kList[k]);
+        while (itr != itr.end()) {
+            ntComp((*itr),t_Counter+k*opt::nSamp*opt::rBuck);
+            ++itr;
+            ++totKmer[k];
+        }
     }
 }
 
-void getEfq(std::ifstream &in, uint16_t *t_Counter, size_t &totKmer) {
+void getEfq(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = getline(in, seq);
         good = getline(in, hseq);
         good = getline(in, hseq);
-        if(good && seq.length()>=opt::kmLen)
-            ntRead(seq, t_Counter, totKmer);
+        if(good)
+            ntRead(seq, kList, t_Counter, totKmer);
         good = getline(in, hseq);
     }
 }
 
-void getEfa(std::ifstream &in, uint16_t *t_Counter, size_t &totKmer) {
+void getEfa(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
     bool good = true;
     for(string seq, hseq; good;) {
         string line;
@@ -138,12 +140,11 @@ void getEfa(std::ifstream &in, uint16_t *t_Counter, size_t &totKmer) {
             line+=seq;
             good = getline(in, seq);
         }
-        if(line.length()>=opt::kmLen)
-            ntRead(line, t_Counter, totKmer);
+        ntRead(line, kList, t_Counter, totKmer);
     }
 }
 
-void getEsm(std::ifstream &in, const std::string &samSeq, uint16_t *t_Counter, size_t &totKmer) {
+void getEsm(std::ifstream &in, const std::vector<unsigned> &kList, const std::string &samSeq, uint16_t *t_Counter, size_t totKmer[]) {
     std::string samLine,seq;
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
     if(opt::samH) {
@@ -155,15 +156,46 @@ void getEsm(std::ifstream &in, const std::string &samSeq, uint16_t *t_Counter, s
     do {
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
-        if(seq.length()>=opt::kmLen)
-            ntRead(seq, t_Counter, totKmer);
+        ntRead(seq, kList, t_Counter, totKmer);
     } while(getline(in,samLine));
+}
+
+void compEst(const uint16_t *t_Counter, double &F0Mean, double fMean[]) {
+    unsigned p[opt::nSamp][65536];
+    for(size_t i=0; i<opt::nSamp; i++)
+        for(size_t j=0; j<65536; j++)
+            p[i][j]=0;
+
+    for(size_t i=0; i<opt::nSamp; i++)
+        for(size_t j=0; j<opt::rBuck; j++)
+            ++p[i][t_Counter[i*opt::rBuck+j]];
+
+    double pMean[65536];
+    for(size_t i=0; i<65536; i++) pMean[i]=0.0;
+    for(size_t i=0; i<65536; i++) {
+        for(size_t j=0; j<opt::nSamp; j++)
+            pMean[i]+=p[j][i];
+        pMean[i] /= 1.0*opt::nSamp;
+    }
+
+    F0Mean= (ssize_t)((opt::rBits*log(2)-log(pMean[0])) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits)));
+    for(size_t i=0; i<65536; i++) fMean[i]=0;
+    fMean[1]= -1.0*pMean[1]/(pMean[0]*(log(pMean[0])-opt::rBits*log(2)));
+    for(size_t i=2; i<65536; i++) {
+        double sum=0.0;
+        for(size_t j=1; j<i; j++)
+            sum+=j*pMean[i-j]*fMean[j];
+        fMean[i]=-1.0*pMean[i]/(pMean[0]*(log(pMean[0])-opt::rBits*log(2)))-sum/(i*pMean[0]);
+    }
+    for(size_t i=1; i<65536; i++)
+        fMean[i]=abs((ssize_t)(fMean[i]*F0Mean));
 }
 
 int main(int argc, char** argv) {
 
     double sTime = omp_get_wtime();
 
+    vector<unsigned> kList;
     bool die = false;
     for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
@@ -184,8 +216,17 @@ int main(int argc, char** argv) {
             arg >> opt::covMax;
             break;
         case 'k':
-            arg >> opt::kmLen;
+        {
+            std::string token;
+            while(getline(arg, token, ',')) {
+                unsigned myK;
+                std::stringstream ss(token);
+                ss >> myK;
+                kList.push_back(myK);
+                ++opt::nK;
+            }
             break;
+        }
         case OPT_HELP:
             std::cerr << USAGE_MESSAGE;
             exit(EXIT_SUCCESS);
@@ -220,15 +261,18 @@ int main(int argc, char** argv) {
             inFiles.push_back(file);
     }
 
+
     size_t totalSize=0;
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i)
         totalSize += getInf(inFiles[file_i].c_str());
     if(totalSize<50000000000) opt::sBits=7;
 
-    size_t totalKmers=0;
-    opt::rBuck = ((unsigned)1) << opt::rBits;
-    opt::sMask = (((unsigned)1) << (opt::sBits-1))-1;
-    uint16_t *t_Counter = new uint16_t [opt::nSamp*opt::rBuck]();
+    size_t totalKmers[kList.size()];
+    for(unsigned k=0; k<kList.size(); k++) totalKmers[k]=0;
+
+    opt::rBuck = ((size_t)1) << opt::rBits;
+    opt::sMask = (((size_t)1) << (opt::sBits-1))-1;
+    uint16_t *t_Counter = new uint16_t [opt::nK*opt::nSamp*opt::rBuck]();
 
 #ifdef _OPENMP
     omp_set_num_threads(opt::nThrd);
@@ -236,55 +280,43 @@ int main(int argc, char** argv) {
 
     #pragma omp parallel for schedule(dynamic)
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-        size_t totKmer=0;
+        size_t totKmer[kList.size()];
+        for(unsigned k=0; k<kList.size(); k++) totKmer[k]=0;
         std::ifstream in(inFiles[file_i].c_str());
         std::string samSeq;
         unsigned ftype = getftype(in,samSeq);
         if(ftype==0)
-            getEfq(in, t_Counter, totKmer);
+            getEfq(in, kList, t_Counter, totKmer);
         else if (ftype==1)
-            getEfa(in, t_Counter, totKmer);
+            getEfa(in, kList, t_Counter, totKmer);
         else if (ftype==2)
-            getEsm(in, samSeq, t_Counter, totKmer);
+            getEsm(in, kList, samSeq, t_Counter, totKmer);
         in.close();
-        #pragma omp atomic
-        totalKmers+=totKmer;
+        for(unsigned k=0; k<kList.size(); k++)
+            #pragma omp atomic
+            totalKmers[k]+=totKmer[k];
     }
 
-    unsigned x[opt::nSamp][65536];
-    for(size_t i=0; i<opt::nSamp; i++)
-        for(size_t j=0; j<65536; j++)
-            x[i][j]=0;
-
-    for(size_t i=0; i<opt::nSamp; i++)
-        for(size_t j=0; j<opt::rBuck; j++)
-            ++x[i][t_Counter[i*opt::rBuck+j]];
-
+    std::ofstream histFiles[opt::nK];
+    for (unsigned k=0; k<opt::nK; k++) {
+        std::stringstream hstm;
+        hstm << "freq_k" << kList[k] << ".hist";
+        histFiles[k].open((hstm.str()).c_str());
+    }
+    #pragma omp parallel for schedule(dynamic)
+    for(unsigned k=0; k<kList.size(); k++) {
+        double F0Mean=0.0;
+        double fMean[65536];
+        compEst(t_Counter+k*opt::nSamp*opt::rBuck, F0Mean, fMean);
+        histFiles[k] << "F1\t" << totalKmers[k] << "\n";
+        histFiles[k] << "F0\t" << (size_t)F0Mean << "\n";
+        for(size_t i=1; i<= opt::covMax; i++)
+            histFiles[k] << "f" << i << "\t" << (size_t)fMean[i] << "\n";
+    }
+    for (unsigned k=0; k<opt::nK; k++)
+        histFiles[k].close();
     delete [] t_Counter;
 
-    double xMean[65536];
-    for(size_t i=0; i<65536; i++) xMean[i]=0.0;
-    for(size_t i=0; i<65536; i++) {
-        for(size_t j=0; j<opt::nSamp; j++)
-            xMean[i]+=x[j][i];
-        xMean[i] /= 1.0*opt::nSamp;
-    }
-
-    double f[65536];
-    for(size_t i=0; i<65536; i++) f[i]=0;
-    f[1]= -1.0*xMean[1]/(xMean[0]*(log(xMean[0])-opt::rBits*log(2)));
-    for(size_t i=2; i<65536; i++) {
-        double sum=0.0;
-        for(size_t j=1; j<i; j++)
-            sum+=j*xMean[i-j]*f[j];
-        f[i]=-1.0*xMean[i]/(xMean[0]*(log(xMean[0])-opt::rBits*log(2)))-sum/(i*xMean[0]);
-    }
-    double F0= (opt::rBits*log(2)-log(xMean[0])) * 1.0* ((size_t)1<<(opt::sBits+opt::rBits));
-    std::cout << "F1\t" << totalKmers << "\n";
-    std::cout << "F0\t" << (long long)F0 << "\n";
-    for(size_t i=1; i<= opt::covMax; i++) {
-        std::cout << "f" << i << "\t" << abs((long long)(f[i]*F0)) << "\n";
-    }
     std::cerr << "Runtime(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
     return 0;
 }
