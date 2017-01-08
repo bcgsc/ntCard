@@ -34,4 +34,12 @@ If we have a list of input files `lib.in` with input file names in each row and 
 ```
 $ ntcard -k144 -t12 @lib.in 
 ```
+Publications
+============
 
+## [ntCard](http://bioinformatics.oxfordjournals.org/content/early/2017/01/04/bioinformatics.btw832)
+
+Hamid Mohamadi, Hamza Khan, and Inanc Birol.
+**ntCard: a streaming algorithm for cardinality estimation in genomics data**.
+*Bioinformatics* (2017).
+[10.1093/bioinformatics/btw832 ](http://dx.doi.org/10.1093/bioinformatics/btw832)
