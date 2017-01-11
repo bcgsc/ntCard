@@ -70,7 +70,7 @@ public:
     }
 
     /** get reference to hash values for current k-mer */
-    const uint64_t operator*() const
+    uint64_t operator*() const
     {
         return m_hVal;
     }

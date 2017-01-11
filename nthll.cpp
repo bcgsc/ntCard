@@ -109,12 +109,12 @@ inline void ntRead(const string &seq, uint8_t *mVec) {
 void getEfq(uint8_t *mVec, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
-        good = getline(in, seq);
-        good = getline(in, hseq);
-        good = getline(in, hseq);
+        good = static_cast<bool>(getline(in, seq));
+        good = static_cast<bool>(getline(in, hseq));
+        good = static_cast<bool>(getline(in, hseq));
         if(good && seq.length()>=opt::kmLen)
             ntRead(seq, mVec);
-        good = getline(in, hseq);
+        good = static_cast<bool>(getline(in, hseq));
     }
 }
 
@@ -122,10 +122,10 @@ void getEfa(uint8_t *mVec, std::ifstream &in) {
     bool good = true;
     for(string seq, hseq; good;) {
         string line;
-        good = getline(in, seq);
+        good = static_cast<bool>(getline(in, seq));
         while(good&&seq[0]!='>') {
             line+=seq;
-            good = getline(in, seq);
+            good = static_cast<bool>(getline(in, seq));
         }
         if(line.length()>=opt::kmLen)
             ntRead(line, mVec);
