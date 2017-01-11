@@ -3,15 +3,29 @@ ntCard
 ntCard is a streaming algorithm for cardinality estimation in genomics datasets. As iput it takes file(s) is fastq, fastq, sam, or bam formats and computes the total number of distinct k-mers, *F<sub>0</sub>*, and also the *k*-mer coverage frequency histogram, *f<sub>i</sub>*, *i>=1*.  
 
 
-# Compiling ntCard from source
+## Install ntCard on Mac OS X
 
+Install [Homebrew](http://brew.sh/), and run the command
+
+	brew install homebrew/science/ntcard
+
+
+Compiling ntCard from GitHub
+===========================
+
+When installing ntCard from GitHub source the following tools are
+required:
+
+* [Autoconf](http://www.gnu.org/software/autoconf)
+* [Automake](http://www.gnu.org/software/automake)
+
+To generate the configure script and make files:
+
+	./autogen.sh
+ 
+Compiling ntCard from source
+===========================
 To compile and install ntCard in /usr/local:
-
-```
-$ ./autogen.sh
-```
-
-Then
 
 ```
 $ ./configure
@@ -24,7 +38,7 @@ To install ntCard in a specified directory:
 ```
 $ ./configure --prefix=/opt/ntCard
 $ make 
-$ sudo make install 
+$ make install 
 ```
 
 ntCard uses OpenMP for parallelization, which requires a modern compiler such as GCC 4.2 or greater. If you have an older compiler, it is best to upgrade your compiler if possible. If you have multiple versions of GCC installed, you can specify a different compiler:
@@ -46,7 +60,8 @@ To run ntCard, its executables should be found in your PATH. If you installed nt
 $ PATH=/opt/ntCard/bin:$PATH
 ```
 
-# Run ntcard
+Run ntCard
+==========
 ```
 ntcard [OPTIONS] ... [FILE]
 ```
