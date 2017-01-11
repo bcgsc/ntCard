@@ -8,6 +8,12 @@ ntCard is a streaming algorithm for cardinality estimation in genomics datasets.
 To compile and install ntCard in /usr/local:
 
 ```
+$ ./autogen.sh
+```
+
+Then
+
+```
 $ ./configure
 $ make 
 $ sudo make install 
