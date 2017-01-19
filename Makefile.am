@@ -7,6 +7,7 @@ ntcard_SOURCES = \
         Common/Uncompress.h \
         Common/SignalHandler.cpp \
         Common/SignalHandler.h \
+        Common/StringUtil.h \
         Common/Fcontrol.cpp \
         Common/Fcontrol.h \
         Common/nthash.hpp \
