@@ -307,7 +307,7 @@ inline uint64_t NTPC64(const char * kmerSeq, const unsigned k, const unsigned se
 }
 
 // multihash ntHash, ntBase
-void NTM64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *hVal) {
+inline void NTM64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *hVal) {
     uint64_t bVal=0, tVal=0;
     bVal = NTP64(kmerSeq, k);
     hVal[0] = bVal;
@@ -319,7 +319,7 @@ void NTM64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *h
 }
 
 // multihash ntHash for sliding k-mers
-void NTM64(const unsigned char charOut, const unsigned char charIn, const unsigned k, const unsigned m, uint64_t *hVal) {
+inline void NTM64(const unsigned char charOut, const unsigned char charIn, const unsigned k, const unsigned m, uint64_t *hVal) {
     uint64_t bVal=0, tVal=0;
     bVal = rol(hVal[0], 1) ^ msTab[charOut][k%64] ^ msTab[charIn][0];
     hVal[0] = bVal;
@@ -331,7 +331,7 @@ void NTM64(const unsigned char charOut, const unsigned char charIn, const unsign
 }
 
 // canonical multihash ntBase
-void NTMC64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *hVal) {
+inline void NTMC64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *hVal) {
     uint64_t bVal=0, tVal=0;
     bVal = NTPC64(kmerSeq, k);
     hVal[0] = bVal;
@@ -343,7 +343,7 @@ void NTMC64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *
 }
 
 // canonical multihash ntHash
-void NTMC64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal) {
+inline void NTMC64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal) {
     uint64_t bVal=0, tVal=0;
     bVal = NTPC64(kmerSeq, k, fhVal, rhVal);
     hVal[0] = bVal;
@@ -355,7 +355,7 @@ void NTMC64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t& 
 }
 
 // canonical multihash ntHash for sliding k-mers
-void NTMC64(const unsigned char charOut, const unsigned char charIn, const unsigned k, const unsigned m, uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal) {
+inline void NTMC64(const unsigned char charOut, const unsigned char charIn, const unsigned k, const unsigned m, uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal) {
     uint64_t bVal=0, tVal=0;
     bVal = NTPC64(charOut, charIn, k, fhVal, rhVal);
     hVal[0] = bVal;
