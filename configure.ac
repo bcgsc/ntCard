@@ -10,7 +10,7 @@ if test -z $CXXFLAGS; then
     CXXFLAGS='-O3'
 fi
 
-if test -z $CXXFLAGS; then
+if test -z $CCFLAGS; then
     CCFLAGS='-O3'
 fi
 
