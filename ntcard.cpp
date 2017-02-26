@@ -33,6 +33,7 @@ static const char USAGE_MESSAGE[] =
     "  -t, --threads=N	use N parallel threads [1]\n"
     "  -k, --kmer=N	the length of kmer [64]\n"
     "  -c, --cov=N	the maximum coverage of kmer in output [64]\n"
+    "  -p, --pref=STRING	the prefix for output file name [freq]\n"
 
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
@@ -52,10 +53,11 @@ unsigned sMask;
 unsigned covMax=64;
 unsigned nSamp=2;
 unsigned nK=0;
+string prefix;
 bool samH=true;
 }
 
-static const char shortopts[] = "t:s:r:k:c:l:f:";
+static const char shortopts[] = "t:s:r:k:c:l:p:f:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -65,6 +67,7 @@ static const struct option longopts[] = {
     { "cov",	required_argument, NULL, 'c' },
     { "rbit",	required_argument, NULL, 'r' },
     { "sbit",	required_argument, NULL, 's' },
+    { "pref",	required_argument, NULL, 'p' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
     { NULL, 0, NULL, 0 }
@@ -216,6 +219,9 @@ int main(int argc, char** argv) {
         case 'c':
             arg >> opt::covMax;
             break;
+        case 'p':
+            arg >> opt::prefix;
+            break;
         case 'k':
         {
             std::string token;
@@ -301,7 +307,10 @@ int main(int argc, char** argv) {
     std::ofstream histFiles[opt::nK];
     for (unsigned k=0; k<opt::nK; k++) {
         std::stringstream hstm;
-        hstm << "freq_k" << kList[k] << ".hist";
+        if(opt::prefix.empty())
+            hstm << "freq_k" << kList[k] << ".hist";
+        else
+            hstm << opt::prefix << "_k" << kList[k] << ".hist";
         histFiles[k].open((hstm.str()).c_str());
     }
     #pragma omp parallel for schedule(dynamic)
