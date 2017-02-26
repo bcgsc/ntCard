@@ -69,6 +69,7 @@ Parameters:
   * `-k`,  `--kmer=SIZE`: the length of *k*-mer `[64]`
   * `-t`,  `--threads=N`: use N parallel threads `[1]`
   * `-c`,  `--cov=N`: the maximum coverage of *k*-mer in output `[64]`
+  * `-p`,  `--pref=STRING`: the prefix for output file name `[freq]`
   * `FILE`: input file or set of files seperated by space, in fasta, fastq, sam, and bam formats. The files can also be in compressed (`.gz`, `.bz2`, `.xz`) formats . A list of files containing file names in each row can be passed with `@` prefix.
   
 For example to run ntcard on a test file `reads.fastq` with `k=50`:
