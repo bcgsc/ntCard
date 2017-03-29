@@ -37,7 +37,6 @@ static const char USAGE_MESSAGE[] =
     "\n"
     "Report bugs to hmohamadi@bcgsc.ca.\n";
 
-
 using namespace std;
 
 namespace opt {
@@ -96,7 +95,6 @@ inline void ntComp(const uint64_t hVal, uint8_t *mVec) {
         if(run0 > mVec[hVal&(opt::nBuck-1)]) mVec[hVal&(opt::nBuck-1)]=run0;
     }
 }
-
 
 inline void ntRead(const string &seq, uint8_t *mVec) {
     ntHashIterator itr(seq, opt::kmLen);

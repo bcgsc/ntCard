@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -271,7 +270,6 @@ int main(int argc, char** argv) {
         else
             inFiles.push_back(file);
     }
-
 
     size_t totalSize=0;
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i)
