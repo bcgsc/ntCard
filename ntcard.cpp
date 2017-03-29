@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -8,6 +9,7 @@
 #include <getopt.h>
 #include <cassert>
 #include <cmath>
+
 
 #include "ntHashIterator.hpp"
 #include "Uncompress.h"
@@ -218,6 +220,8 @@ int main(int argc, char** argv) {
             break;
         case 'c':
             arg >> opt::covMax;
+            if(opt::covMax>65535)
+                opt::covMax = 65535;
             break;
         case 'p':
             arg >> opt::prefix;
