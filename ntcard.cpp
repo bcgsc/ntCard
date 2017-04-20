@@ -47,13 +47,13 @@ using namespace std;
 namespace opt {
 unsigned nThrd=1;
 unsigned kmLen=64;
-unsigned rBuck;
+size_t rBuck;
 unsigned rBits=27;
 unsigned sBits=11;
 unsigned sMask;
 unsigned covMax=64;
-unsigned nSamp=2;
-unsigned nK=0;
+size_t nSamp=2;
+size_t nK=0;
 string prefix;
 bool samH=true;
 }
