@@ -96,5 +96,5 @@ Publications
 
 Hamid Mohamadi, Hamza Khan, and Inanc Birol.
 **ntCard: a streaming algorithm for cardinality estimation in genomics data**.
-*Bioinformatics* (2017).
+*Bioinformatics* (2017) 33 (9): 1324-1330.
 [10.1093/bioinformatics/btw832 ](http://dx.doi.org/10.1093/bioinformatics/btw832)
