@@ -32,7 +32,7 @@ static const char USAGE_MESSAGE[] =
     " Options:\n"
     "\n"
     "  -t, --threads=N	use N parallel threads [1]\n"
-    "  -k, --kmer=N	the length of kmer [64]\n"
+    "  -k, --kmer=N	the length of kmer \n"
     "  -c, --cov=N	the maximum coverage of kmer in output [64]\n"
     "  -p, --pref=STRING	the prefix for output file name [freq]\n"
 
@@ -254,6 +254,12 @@ int main(int argc, char** argv) {
         std::cerr << PROGRAM ": missing arguments\n";
         die = true;
     }
+    
+    if (opt::nK == 0) {
+        std::cerr << PROGRAM ": missing argument -k ... \n";
+        die = true;
+    }
+    
     if (die) {
         std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
         exit(EXIT_FAILURE);
