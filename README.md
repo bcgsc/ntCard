@@ -3,12 +3,17 @@ ntCard
 ntCard is a streaming algorithm for cardinality estimation in genomics datasets. As input it takes file(s) in fasta, fastq, sam, or bam formats and computes the total number of distinct k-mers, *F<sub>0</sub>*, and also the *k*-mer coverage frequency histogram, *f<sub>i</sub>*, *i>=1*.  
 
 
-## Install ntCard on Mac OS X
+## Install ntCard on macOS
 
-Install [Homebrew](http://brew.sh/), and run the command
+Install [Homebrew](https://brew.sh/), and run the command
 
-	brew install homebrew/science/ntcard
+	brew install brewsci/bio/ntcard
 
+## Install ntCard on Linux
+
+Install [Linuxbrew](http://linuxbrew.sh/), and run the command
+
+	brew install brewsci/bio/ntcard
 
 Compiling ntCard from GitHub
 ===========================
