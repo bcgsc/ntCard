@@ -96,9 +96,15 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
         else
             return 0;
     }
-    opt::samH=false;
-    samSeq=hseq;
-    return 2;
+    std::istringstream alnSec(hseq);
+    std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s10, s11;
+    alnSec>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>s10>>s11;
+    if((s2.find_first_not_of("0123456789") == std::string::npos) && (s5.find_first_not_of("0123456789") == std::string::npos)) {
+        opt::samH=false;
+        samSeq=hseq;
+        return 2;
+    }
+    return 3;
 }
 
 inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
@@ -254,12 +260,12 @@ int main(int argc, char** argv) {
         std::cerr << PROGRAM ": missing arguments\n";
         die = true;
     }
-    
+
     if (opt::nK == 0) {
         std::cerr << PROGRAM ": missing argument -k ... \n";
         die = true;
     }
-    
+
     if (die) {
         std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
         exit(EXIT_FAILURE);
@@ -306,6 +312,10 @@ int main(int argc, char** argv) {
             getEfa(in, kList, t_Counter, totKmer);
         else if (ftype==2)
             getEsm(in, kList, samSeq, t_Counter, totKmer);
+        else {
+            std::cerr << "Error in reading file: " << inFiles[file_i] << std::endl;
+            exit(EXIT_FAILURE);
+        }
         in.close();
         for(unsigned k=0; k<kList.size(); k++)
             #pragma omp atomic
