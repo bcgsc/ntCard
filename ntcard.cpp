@@ -53,18 +53,18 @@ unsigned sBits=11;
 unsigned sMask;
 unsigned covMax=64;
 size_t nSamp=2;
-size_t nK=0;
+size_t nS=0;
 string prefix;
 bool samH=true;
 }
 
-static const char shortopts[] = "t:s:r:k:c:l:p:f:";
+static const char shortopts[] = "t:s:r:g:c:l:p:f:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
 static const struct option longopts[] = {
     { "threads",	required_argument, NULL, 't' },
-    { "kmer",	required_argument, NULL, 'k' },
+    { "seed",	required_argument, NULL, 'g' },
     { "cov",	required_argument, NULL, 'c' },
     { "rbit",	required_argument, NULL, 'r' },
     { "sbit",	required_argument, NULL, 's' },
@@ -119,30 +119,31 @@ inline void ntComp(const uint64_t hVal, uint16_t *t_Counter) {
 
 }
 
-inline void ntRead(const string &seq, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
-    for(unsigned k=0; k<kList.size(); k++) {
-        ntHashIterator itr(seq, kList[k]);
-        while (itr != itr.end()) {
-            ntComp((*itr),t_Counter+k*opt::nSamp*opt::rBuck);
-            ++itr;
+inline void ntRead(const string &seq, const std::vector<std::string> &sList, uint16_t *t_Counter, size_t totKmer[]) {
+    ntHashIterator itr(seq, sList, sList.size(), sList[0].size());
+    while (itr != itr.end()) {
+        for(unsigned k=0; k<sList.size(); k++)
+            ntComp((*itr)[k],t_Counter+k*opt::nSamp*opt::rBuck);
+        --itr;
+        for(unsigned k=0; k<sList.size(); k++)
             ++totKmer[k];
-        }
     }
+
 }
 
-void getEfq(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
+void getEfq(std::ifstream &in, const std::vector<std::string> &sList, uint16_t *t_Counter, size_t totKmer[]) {
     bool good = true;
     for(string seq, hseq; good;) {
         good = static_cast<bool>(getline(in, seq));
         good = static_cast<bool>(getline(in, hseq));
         good = static_cast<bool>(getline(in, hseq));
         if(good)
-            ntRead(seq, kList, t_Counter, totKmer);
+            ntRead(seq, sList, t_Counter, totKmer);
         good = static_cast<bool>(getline(in, hseq));
     }
 }
 
-void getEfa(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
+void getEfa(std::ifstream &in, const std::vector<std::string> &sList, uint16_t *t_Counter, size_t totKmer[]) {
     bool good = true;
     for(string seq, hseq; good;) {
         string line;
@@ -151,11 +152,11 @@ void getEfa(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_C
             line+=seq;
             good = static_cast<bool>(getline(in, seq));
         }
-        ntRead(line, kList, t_Counter, totKmer);
+        ntRead(line, sList, t_Counter, totKmer);
     }
 }
 
-void getEsm(std::ifstream &in, const std::vector<unsigned> &kList, const std::string &samSeq, uint16_t *t_Counter, size_t totKmer[]) {
+void getEsm(std::ifstream &in, const std::vector<std::string> &sList, const std::string &samSeq, uint16_t *t_Counter, size_t totKmer[]) {
     std::string samLine,seq;
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
     if(opt::samH) {
@@ -167,7 +168,7 @@ void getEsm(std::ifstream &in, const std::vector<unsigned> &kList, const std::st
     do {
         std::istringstream iss(samLine);
         iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
-        ntRead(seq, kList, t_Counter, totKmer);
+        ntRead(seq, sList, t_Counter, totKmer);
     } while(getline(in,samLine));
 }
 
@@ -206,7 +207,7 @@ int main(int argc, char** argv) {
 
     double sTime = omp_get_wtime();
 
-    vector<unsigned> kList;
+    vector<std::string> sList;
     bool die = false;
     for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
         std::istringstream arg(optarg != NULL ? optarg : "");
@@ -231,15 +232,12 @@ int main(int argc, char** argv) {
         case 'p':
             arg >> opt::prefix;
             break;
-        case 'k':
+        case 'g':
         {
-            std::string token;
-            while(getline(arg, token, ',')) {
-                unsigned myK;
-                std::stringstream ss(token);
-                ss >> myK;
-                kList.push_back(myK);
-                ++opt::nK;
+            std::string sSeed;
+            while(getline(arg, sSeed, ',')) {
+                sList.push_back(sSeed);
+                ++opt::nS;
             }
             break;
         }
@@ -261,8 +259,8 @@ int main(int argc, char** argv) {
         die = true;
     }
 
-    if (opt::nK == 0) {
-        std::cerr << PROGRAM ": missing argument -k ... \n";
+    if (opt::nS == 0) {
+        std::cerr << PROGRAM ": missing argument --seed ... \n";
         die = true;
     }
 
@@ -270,6 +268,7 @@ int main(int argc, char** argv) {
         std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
         exit(EXIT_FAILURE);
     }
+
     vector<string> inFiles;
     for (int i = optind; i < argc; ++i) {
         string file(argv[i]);
@@ -288,12 +287,12 @@ int main(int argc, char** argv) {
         totalSize += getInf(inFiles[file_i].c_str());
     if(totalSize<50000000000) opt::sBits=7;
 
-    size_t totalKmers[kList.size()];
-    for(unsigned k=0; k<kList.size(); k++) totalKmers[k]=0;
+    size_t totalKmers[sList.size()];
+    for(unsigned k=0; k<sList.size(); k++) totalKmers[k]=0;
 
     opt::rBuck = ((size_t)1) << opt::rBits;
     opt::sMask = (((size_t)1) << (opt::sBits-1))-1;
-    uint16_t *t_Counter = new uint16_t [opt::nK*opt::nSamp*opt::rBuck]();
+    uint16_t *t_Counter = new uint16_t [opt::nS*opt::nSamp*opt::rBuck]();
 
 #ifdef _OPENMP
     omp_set_num_threads(opt::nThrd);
@@ -301,38 +300,38 @@ int main(int argc, char** argv) {
 
     #pragma omp parallel for schedule(dynamic)
     for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i) {
-        size_t totKmer[kList.size()];
-        for(unsigned k=0; k<kList.size(); k++) totKmer[k]=0;
+        size_t totKmer[sList.size()];
+        for(unsigned k=0; k<sList.size(); k++) totKmer[k]=0;
         std::ifstream in(inFiles[file_i].c_str());
         std::string samSeq;
         unsigned ftype = getftype(in,samSeq);
         if(ftype==0)
-            getEfq(in, kList, t_Counter, totKmer);
+            getEfq(in, sList, t_Counter, totKmer);
         else if (ftype==1)
-            getEfa(in, kList, t_Counter, totKmer);
+            getEfa(in, sList, t_Counter, totKmer);
         else if (ftype==2)
-            getEsm(in, kList, samSeq, t_Counter, totKmer);
+            getEsm(in, sList, samSeq, t_Counter, totKmer);
         else {
             std::cerr << "Error in reading file: " << inFiles[file_i] << std::endl;
             exit(EXIT_FAILURE);
         }
         in.close();
-        for(unsigned k=0; k<kList.size(); k++)
+        for(unsigned k=0; k<sList.size(); k++)
             #pragma omp atomic
             totalKmers[k]+=totKmer[k];
     }
 
-    std::ofstream histFiles[opt::nK];
-    for (unsigned k=0; k<opt::nK; k++) {
+    std::ofstream histFiles[opt::nS];
+    for (unsigned k=0; k<opt::nS; k++) {
         std::stringstream hstm;
         if(opt::prefix.empty())
-            hstm << "freq_k" << kList[k] << ".hist";
+            hstm << "freq_seed_" << sList[k] << ".hist";
         else
-            hstm << opt::prefix << "_k" << kList[k] << ".hist";
+            hstm << opt::prefix << "_seed_" << sList[k] << ".hist";
         histFiles[k].open((hstm.str()).c_str());
     }
     #pragma omp parallel for schedule(dynamic)
-    for(unsigned k=0; k<kList.size(); k++) {
+    for(unsigned k=0; k<sList.size(); k++) {
         double F0Mean=0.0;
         double fMean[65536];
         compEst(t_Counter+k*opt::nSamp*opt::rBuck, F0Mean, fMean);
@@ -341,7 +340,7 @@ int main(int argc, char** argv) {
         for(size_t i=1; i<= opt::covMax; i++)
             histFiles[k] << "f" << i << "\t" << (size_t)fMean[i] << "\n";
     }
-    for (unsigned k=0; k<opt::nK; k++)
+    for (unsigned k=0; k<opt::nS; k++)
         histFiles[k].close();
     delete [] t_Counter;
 
