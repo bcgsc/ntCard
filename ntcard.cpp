@@ -8,8 +8,6 @@
 #include <getopt.h>
 #include <cassert>
 #include <cmath>
-
-
 #include "ntHashIterator.hpp"
 #include "Uncompress.h"
 
@@ -51,7 +49,7 @@ size_t rBuck;
 unsigned rBits=27;
 unsigned sBits=11;
 unsigned sMask;
-unsigned covMax=64;
+unsigned covMax=200;
 size_t nSamp=2;
 size_t nK=0;
 string prefix;

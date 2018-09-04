@@ -48,7 +48,7 @@ public:
             return;
         }
         unsigned locN=0;
-        while (m_pos<m_seq.length()-m_k+1 && !NTPC64(m_seq.data()+m_pos, m_k, m_fhVal, m_rhVal, m_hVal, locN))
+        while (m_pos<m_seq.length()-m_k+1 && !NTC64(m_seq.data()+m_pos, m_k, m_fhVal, m_rhVal, m_hVal, locN))
             m_pos+=locN+1;
         if (m_pos >= m_seq.length()-m_k+1)
             m_pos = std::numeric_limits<std::size_t>::max();
@@ -66,7 +66,7 @@ public:
             init();
         }
         else
-            m_hVal = NTPC64(m_seq.at(m_pos-1), m_seq.at(m_pos-1+m_k), m_k, m_fhVal, m_rhVal);
+            m_hVal = NTC64(m_seq.at(m_pos-1), m_seq.at(m_pos-1+m_k), m_k,  m_fhVal, m_rhVal);
     }
 
     /** get reference to hash values for current k-mer */
