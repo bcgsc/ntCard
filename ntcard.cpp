@@ -18,9 +18,9 @@
 #define PROGRAM "ntcard"
 
 static const char VERSION_MESSAGE[] =
-    PROGRAM " Version 1.0.0 \n"
+    PROGRAM " Version 1.0.2 \n"
     "Written by Hamid Mohamadi.\n"
-    "Copyright 2016 Canada's Michael Smith Genome Science Centre\n";
+    "Copyright 2018 Canada's Michael Smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILES...\n"
@@ -32,8 +32,8 @@ static const char USAGE_MESSAGE[] =
     "  -t, --threads=N	use N parallel threads [1]\n"
     "  -k, --kmer=N	the length of kmer \n"
     "  -c, --cov=N	the maximum coverage of kmer in output [64]\n"
-    "  -p, --pref=STRING	the prefix for output file name [freq]\n"
-
+    "  -p, --pref=STRING    the prefix for output file name [freq]\n"
+    "  -o, --output=STRING	the name for output file name\n"
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
     "\n"
@@ -49,14 +49,15 @@ size_t rBuck;
 unsigned rBits=27;
 unsigned sBits=11;
 unsigned sMask;
-unsigned covMax=200;
+unsigned covMax=1000;
 size_t nSamp=2;
 size_t nK=0;
 string prefix;
+string output;
 bool samH=true;
 }
 
-static const char shortopts[] = "t:s:r:k:c:l:p:f:";
+static const char shortopts[] = "t:s:r:k:c:l:p:f:o:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
@@ -66,6 +67,7 @@ static const struct option longopts[] = {
     { "cov",	required_argument, NULL, 'c' },
     { "rbit",	required_argument, NULL, 'r' },
     { "sbit",	required_argument, NULL, 's' },
+    { "output",	required_argument, NULL, 'o' },
     { "pref",	required_argument, NULL, 'p' },
     { "help",	no_argument, NULL, OPT_HELP },
     { "version",	no_argument, NULL, OPT_VERSION },
@@ -200,6 +202,45 @@ void compEst(const uint16_t *t_Counter, double &F0Mean, double fMean[]) {
         fMean[i]=abs((ssize_t)(fMean[i]*F0Mean));
 }
 
+void outDefault(const std::vector<unsigned> &kList, const size_t totalKmers[], const uint16_t *t_Counter) {
+    std::ofstream histFiles[opt::nK];
+    for (unsigned k=0; k<opt::nK; k++) {
+        std::stringstream hstm;
+        if(opt::prefix.empty())
+            hstm << "freq_k" << kList[k] << ".hist";
+        else
+            hstm << opt::prefix << "_k" << kList[k] << ".hist";
+        histFiles[k].open((hstm.str()).c_str());
+    }
+    #pragma omp parallel for schedule(dynamic)
+    for(unsigned k=0; k<kList.size(); k++) {
+        double F0Mean=0.0;
+        double fMean[65536];
+        compEst(t_Counter+k*opt::nSamp*opt::rBuck, F0Mean, fMean);
+        histFiles[k] << "F1\t" << totalKmers[k] << "\n";
+        histFiles[k] << "F0\t" << (size_t)F0Mean << "\n";
+        for(size_t i=1; i<= opt::covMax; i++)
+            histFiles[k] << i << "\t" << (size_t)fMean[i] << "\n";
+    }
+    for (unsigned k=0; k<opt::nK; k++)
+        histFiles[k].close();
+}
+
+void outCompact(const std::vector<unsigned> &kList, const size_t totalKmers[], const uint16_t *t_Counter) {
+    ofstream histFile(opt::output.c_str());
+    histFile << "k\tf\tn\n";
+    for(unsigned k=0; k<kList.size(); k++) {
+        double F0Mean=0.0;
+        double fMean[65536];
+        compEst(t_Counter+k*opt::nSamp*opt::rBuck, F0Mean, fMean);
+        std::cerr << kList[k] << "\tF1\t" << totalKmers[k] << "\n";
+        std::cerr << kList[k] << "\tF0\t" << (size_t)F0Mean << "\n";
+        for(size_t i=1; i<= opt::covMax; i++)
+            histFile << kList[k] << "\t" << i << "\t" << (size_t)fMean[i] << "\n";
+    }
+    histFile.close();
+}
+
 int main(int argc, char** argv) {
 
     double sTime = omp_get_wtime();
@@ -228,6 +269,9 @@ int main(int argc, char** argv) {
             break;
         case 'p':
             arg >> opt::prefix;
+            break;
+        case 'o':
+            arg >> opt::output;
             break;
         case 'k':
         {
@@ -320,27 +364,11 @@ int main(int argc, char** argv) {
             totalKmers[k]+=totKmer[k];
     }
 
-    std::ofstream histFiles[opt::nK];
-    for (unsigned k=0; k<opt::nK; k++) {
-        std::stringstream hstm;
-        if(opt::prefix.empty())
-            hstm << "freq_k" << kList[k] << ".hist";
-        else
-            hstm << opt::prefix << "_k" << kList[k] << ".hist";
-        histFiles[k].open((hstm.str()).c_str());
-    }
-    #pragma omp parallel for schedule(dynamic)
-    for(unsigned k=0; k<kList.size(); k++) {
-        double F0Mean=0.0;
-        double fMean[65536];
-        compEst(t_Counter+k*opt::nSamp*opt::rBuck, F0Mean, fMean);
-        histFiles[k] << "F1\t" << totalKmers[k] << "\n";
-        histFiles[k] << "F0\t" << (size_t)F0Mean << "\n";
-        for(size_t i=1; i<= opt::covMax; i++)
-            histFiles[k] << "f" << i << "\t" << (size_t)fMean[i] << "\n";
-    }
-    for (unsigned k=0; k<opt::nK; k++)
-        histFiles[k].close();
+    if(opt::output.empty())
+        outDefault(kList, totalKmers, t_Counter);
+    else
+        outCompact(kList, totalKmers, t_Counter);
+
     delete [] t_Counter;
 
     std::cerr << "Runtime(sec): " <<setprecision(4) << fixed << omp_get_wtime() - sTime << "\n";
