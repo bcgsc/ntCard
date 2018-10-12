@@ -1,5 +1,5 @@
 AC_PREREQ(2.62)
-AC_INIT(NTCARD, 1.0.1, hmohamadi@bcgsc.ca, ntcard,
+AC_INIT(NTCARD, 1.1.0, hmohamadi@bcgsc.ca, ntcard,
 		https://github.com/bcgsc/ntCard)
 # add 'foreign' to allow README.md instead of README
 AM_INIT_AUTOMAKE([foreign subdir-objects])

@@ -18,9 +18,9 @@
 #define PROGRAM "nthll"
 
 static const char VERSION_MESSAGE[] =
-    PROGRAM " Version 1.0.0 \n"
+    PROGRAM " Version 1.1.0 \n"
     "Written by Hamid Mohamadi.\n"
-    "Copyright 2016 Canada's Michael Smith Genome Science Centre\n";
+    "Copyright 2018 Canada's Michael Smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILES...\n"
