@@ -68,15 +68,15 @@ $ PATH=/opt/ntCard/bin:$PATH
 Run ntCard
 ==========
 ```
-ntcard [OPTIONS] ... [FILE]
+ntcard [OPTIONS] ... FILE(S) ...
 ```
 Parameters:
-  * `-k`,  `--kmer=SIZE`: the length of *k*-mer `[64]`
-  * `-t`,  `--threads=N`: use N parallel threads `[1]`
+  * `-t`,  `--threads=N`: use N parallel threads [1] (N>=2 should be used when input files are >=2)
+  * `-k`,  `--kmer=N`: the length of *k*-mer
   * `-c`,  `--cov=N`: the maximum coverage of *k*-mer in output `[1000]`
   * `-p`,  `--pref=STRING`: the prefix for output file names `[freq]`
-  * `-o`,  `--output=STRING`: the name for single output file name (can be used only for single compact output file)`
-  * `FILE`: input file or set of files seperated by space, in fasta, fastq, sam, and bam formats. The files can also be in compressed (`.gz`, `.bz2`, `.xz`) formats . A list of files containing file names in each row can be passed with `@` prefix.
+  * `-o`,  `--output=STRING`: the name for single output file name (can be used only for single compact output file)
+  * `FILE(S)`: input file or set of files seperated by space, in fasta, fastq, sam, and bam formats. The files can also be in compressed (`.gz`, `.bz2`, `.xz`) formats . A list of files containing file names in each row can be passed with `@` prefix.
   
 For example to run ntcard on a test file `reads.fastq` with `k=50`:
 ```

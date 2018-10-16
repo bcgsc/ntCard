@@ -20,22 +20,22 @@
 static const char VERSION_MESSAGE[] =
     PROGRAM " Version 1.1.0 \n"
     "Written by Hamid Mohamadi.\n"
-    "Copyright 2018 Canada's Michael Smith Genome Science Centre\n";
+    "Copyright 2018 Hamid Mohamadi, Licensed under MIT License\n";
 
 static const char USAGE_MESSAGE[] =
-    "Usage: " PROGRAM " [OPTION]... FILES...\n"
-    "Estimates the number of k-mers in FILES(>=1).\n"
-    "Accepatble file formats: fastq, fasta, sam, bam, gz, bz, zip.\n"
+    "Usage: " PROGRAM " [OPTION]... FILE(S)...\n"
+    "Estimates distinct number of k-mers in FILE(S).\n\n"
+    "Acceptable file formats: fastq, fasta, sam, bam and in compressed formats gz, bz, zip, xz.\n"
     "Accepts a list of files by adding @ at the beginning of the list name.\n"
     "\n"
     " Options:\n"
     "\n"
-    "  -t, --threads=N	use N parallel threads [1]\n"
+    "  -t, --threads=N	use N parallel threads [1] (N>=2 should be used when input files are >=2)\n"
     "  -k, --kmer=N	the length of kmer [64]\n"
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
     "\n"
-    "Report bugs to hmohamadi@bcgsc.ca.\n";
+    "Report bugs to https://github.com/bcgsc/ntCard/issues\n";
 
 using namespace std;
 

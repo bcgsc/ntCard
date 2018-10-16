@@ -15,29 +15,31 @@
 # include <omp.h>
 #endif
 
-#define PROGRAM "ntcard"
+#define PROGRAM "ntCard"
 
 static const char VERSION_MESSAGE[] =
-    PROGRAM " Version 1.1.0 \n"
+    PROGRAM " 1.1.0 \n"
     "Written by Hamid Mohamadi.\n"
-    "Copyright 2018 Canada's Michael Smith Genome Science Centre\n";
+    "Copyright 2018 Hamid Mohamadi, Licensed under MIT License\n";
 
 static const char USAGE_MESSAGE[] =
-    "Usage: " PROGRAM " [OPTION]... FILES...\n"
-    "Estimates the number of k-mers in FILES(>=1).\n"
-    "Accepatble file formats: fastq, fasta, sam, bam, gz, bz, zip.\n"
+    "Usage: " PROGRAM " [OPTION]... FILE(S)...\n"
+    "Estimates k-mer coverage histogram in FILE(S).\n\n"
+    "Acceptable file formats: fastq, fasta, sam, bam and in compressed formats gz, bz, zip, xz.\n"
+    "A list of files containing file names in each row can be passed with @ prefix.\n"
+
     "\n"
     " Options:\n"
     "\n"
-    "  -t, --threads=N	use N parallel threads [1]\n"
+    "  -t, --threads=N	use N parallel threads [1] (N>=2 should be used when input files are >=2)\n"
     "  -k, --kmer=N	the length of kmer \n"
-    "  -c, --cov=N	the maximum coverage of kmer in output [64]\n"
-    "  -p, --pref=STRING    the prefix for output file name [freq]\n"
-    "  -o, --output=STRING	the name for output file name\n"
+    "  -c, --cov=N	the maximum coverage of kmer in output [1000]\n"
+    "  -p, --pref=STRING    the prefix for output file name(s)\n"
+    "  -o, --output=STRING	the name for output file name (used when output should be a single file)\n"
     "      --help	display this help and exit\n"
     "      --version	output version information and exit\n"
     "\n"
-    "Report bugs to hmohamadi@bcgsc.ca.\n";
+    "Report bugs to https://github.com/bcgsc/ntCard/issues\n";
 
 
 using namespace std;
@@ -79,6 +81,12 @@ size_t getInf(const char* inFile) {
     return in.tellg();
 }
 
+bool isNumber(const string &seq) {
+    string::const_iterator itr = seq.begin();
+    while(itr!= seq.end() && isdigit(*itr)) ++itr;
+    return (itr==seq.end() && !seq.empty());
+}
+
 unsigned getftype(std::ifstream &in, std::string &samSeq) {
     std::string hseq;
     getline(in,hseq);
@@ -99,7 +107,7 @@ unsigned getftype(std::ifstream &in, std::string &samSeq) {
     std::istringstream alnSec(hseq);
     std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s10, s11;
     alnSec>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>s10>>s11;
-    if((s2.find_first_not_of("0123456789") == std::string::npos) && (s5.find_first_not_of("0123456789") == std::string::npos)) {
+    if(isNumber(s2) && isNumber(s5)) {
         opt::samH=false;
         samSeq=hseq;
         return 2;
@@ -206,10 +214,7 @@ void outDefault(const std::vector<unsigned> &kList, const size_t totalKmers[], c
     std::ofstream histFiles[opt::nK];
     for (unsigned k=0; k<opt::nK; k++) {
         std::stringstream hstm;
-        if(opt::prefix.empty())
-            hstm << "freq_k" << kList[k] << ".hist";
-        else
-            hstm << opt::prefix << "_k" << kList[k] << ".hist";
+        hstm << opt::prefix << "_k" << kList[k] << ".hist";
         histFiles[k].open((hstm.str()).c_str());
     }
     #pragma omp parallel for schedule(dynamic)
@@ -233,8 +238,8 @@ void outCompact(const std::vector<unsigned> &kList, const size_t totalKmers[], c
         double F0Mean=0.0;
         double fMean[65536];
         compEst(t_Counter+k*opt::nSamp*opt::rBuck, F0Mean, fMean);
-        std::cerr << kList[k] << "\tF1\t" << totalKmers[k] << "\n";
-        std::cerr << kList[k] << "\tF0\t" << (size_t)F0Mean << "\n";
+        std::cerr << "k=" << kList[k] << "\tF1\t" << totalKmers[k] << "\n";
+        std::cerr << "k=" << kList[k] << "\tF0\t" << (size_t)F0Mean << "\n";
         for(size_t i=1; i<= opt::covMax; i++)
             histFile << kList[k] << "\t" << i << "\t" << (size_t)fMean[i] << "\n";
     }
@@ -305,6 +310,11 @@ int main(int argc, char** argv) {
 
     if (opt::nK == 0) {
         std::cerr << PROGRAM ": missing argument -k ... \n";
+        die = true;
+    }
+
+    if (opt::prefix.empty() && opt::output.empty()) {
+        std::cerr << PROGRAM ": missing argument -p/-o ... \n";
         die = true;
     }
 
