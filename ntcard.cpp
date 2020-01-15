@@ -390,6 +390,11 @@ int main(int argc, char** argv) {
         die = true;
     }
 
+    if (opt::gap != 0 && kList.size() != 1) {
+        std::cerr << PROGRAM ": -g does not support multiple k currently.\n";
+        die = true;
+    }
+
     if (die) {
         std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
         exit(EXIT_FAILURE);
