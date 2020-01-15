@@ -22,10 +22,3 @@ jobs:
       ./configure
       make
     displayName: Compiling ntCard
-  - script: |
-      mkdir gcc-5
-      cd gcc-5
-      export DISTCHECK_CONFIGURE_FLAGS="CC=gcc-5 CXX=g++-5"
-      ../configure CC=gcc-5 CXX=g++-5 --with-mpi=/usr/lib/openmpi
-      make -j12 distcheck
-    displayName: Compiling ntCard with gcc-5
