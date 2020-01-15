@@ -192,42 +192,43 @@ void getEfq(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_C
     }
 }
 
-void
-getEfa(std::ifstream& in, const std::vector<unsigned>& kList, uint16_t* t_Counter, size_t totKmer[])
-{
-	bool good = true;
-	for (string seq, hseq; good;) {
-		string line;
-		good = static_cast<bool>(getline(in, seq));
-		while (good && seq[0] != '>') {
-			line += seq;
-			good = static_cast<bool>(getline(in, seq));
-		}
-		ntRead(line, kList, t_Counter, totKmer);
-	}
+void getEfa(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
+    bool good = true;
+    for(string seq, hseq; good;) {
+        string line;
+        good = static_cast<bool>(getline(in, seq));
+        while(good&&seq[0]!='>') {
+            line+=seq;
+            good = static_cast<bool>(getline(in, seq));
+        }
+        if(opt::gap == 0) {
+            ntRead(seq, kList, t_Counter, totKmer);
+        }
+        else {
+            stRead(seq, kList, t_Counter, totKmer);
+        }
+    }
 }
 
-void
-getEsm(
-    std::ifstream& in,
-    const std::vector<unsigned>& kList,
-    const std::string& samSeq,
-    uint16_t* t_Counter,
-    size_t totKmer[])
-{
-	std::string samLine, seq;
-	std::string s1, s2, s3, s4, s5, s6, s7, s8, s9, s11;
-	if (opt::samH) {
-		while (getline(in, samLine))
-			if (samLine[0] != '@')
-				break;
-	} else
-		samLine = samSeq;
-	do {
-		std::istringstream iss(samLine);
-		iss >> s1 >> s2 >> s3 >> s4 >> s5 >> s6 >> s7 >> s8 >> s9 >> seq >> s11;
-		ntRead(seq, kList, t_Counter, totKmer);
-	} while (getline(in, samLine));
+void getEsm(std::ifstream &in, const std::vector<unsigned> &kList, const std::string &samSeq, uint16_t *t_Counter, size_t totKmer[]) {
+    std::string samLine,seq;
+    std::string s1,s2,s3,s4,s5,s6,s7,s8,s9,s11;
+    if(opt::samH) {
+        while(getline(in,samLine))
+            if (samLine[0]!='@') break;
+    }
+    else
+        samLine=samSeq;
+    do {
+        std::istringstream iss(samLine);
+        iss>>s1>>s2>>s3>>s4>>s5>>s6>>s7>>s8>>s9>>seq>>s11;
+        if(opt::gap == 0) {
+            ntRead(seq, kList, t_Counter, totKmer);
+        }
+        else {
+            stRead(seq, kList, t_Counter, totKmer);
+        }
+    } while(getline(in,samLine));
 }
 
 void

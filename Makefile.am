@@ -1,3 +1,4 @@
+ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = ntcard nthll
 
 ntcard_CPPFLAGS = -I$(top_srcdir)/Common
