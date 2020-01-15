@@ -68,7 +68,7 @@ size_t nK = 0;
 string prefix;
 string output;
 bool samH=true;
-std::vector<std::vector<unsigned> > seedSet ;//= {{}};
+std::vector<std::vector<unsigned> > seedSet;
 
 }
 
@@ -167,7 +167,6 @@ ntRead(const string& seq, const std::vector<unsigned>& kList, uint16_t* t_Counte
 
 inline void stRead(const string &seq, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
     for(unsigned k=0; k<kList.size(); k++) {
-	    //stHashIterator ssitr(seq, seedSet, 1, 5, seedString[0].size());
         stHashIterator itr(seq, opt::seedSet, 1, 1, kList[k]);
         while (itr != itr.end()) {
             ntComp((const uint64_t)(*itr)[0],t_Counter+k*opt::nSamp*opt::rBuck);
