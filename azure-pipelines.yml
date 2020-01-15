@@ -3,17 +3,29 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger:
-- master
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+jobs:
+- job: linux
+  pool:
+    vmImage: Ubuntu 16.04
+  steps:
+  - script: |
+      sudo apt-get update -qq
+      sudo apt-get install -qq software-properties-common
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+      sudo apt-get update -qq
+      sudo apt-get install -qq autoconf automake gcc g++ make
+    displayName: Install common
+  - script: sudo apt-get install -qq gcc-5 g++-5
+    displayName: Install gcc-5
+  - script: |
+      ./autogen.sh
+      ./configure
+      make
+    displayName: Compiling ntCard
+  - script: |
+      mkdir gcc-5
+      cd gcc-5
+      export DISTCHECK_CONFIGURE_FLAGS="CC=gcc-5 CXX=g++-5"
+      ../configure CC=gcc-5 CXX=g++-5 --with-mpi=/usr/lib/openmpi
+      make -j12 distcheck
+    displayName: Compiling ntCard with gcc-5
