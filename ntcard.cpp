@@ -42,6 +42,7 @@ static const char USAGE_MESSAGE[] =
     "  -t, --threads=N	use N parallel threads [1] (N>=2 should be used when input files are >=2)\n"
     "  -k, --kmer=N	the length of kmer \n"
     "  -g, --gap=N	the length of gap in the gap seed [0]. g mod 2 must equal k mod 2 unless g == 0\n"
+    "           	-g does not support multiple k currently.\n"
     "  -c, --cov=N	the maximum coverage of kmer in output [1000]\n"
     "  -p, --pref=STRING    the prefix for output file name(s)\n"
     "  -o, --output=STRING	the name for output file name (used when output should be a single "
@@ -182,12 +183,10 @@ void getEfq(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_C
         good = static_cast<bool>(getline(in, seq));
         good = static_cast<bool>(getline(in, hseq));
         good = static_cast<bool>(getline(in, hseq));
-        if(good && opt::gap == 0)
-        {
+        if(good && opt::gap == 0) {
             ntRead(seq, kList, t_Counter, totKmer);
         }
-        if(good && opt::gap != 0)
-        {
+        if(good && opt::gap != 0) {
             stRead(seq, kList, t_Counter, totKmer);
         }
         good = static_cast<bool>(getline(in, hseq));
