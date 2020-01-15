@@ -11,6 +11,13 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <cstdlib>
+#include <getopt.h>
+#include <cassert>
+#include <cmath>
+#include "ntHashIterator.hpp"
+#include "stHashIterator.hpp"
+#include "Uncompress.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -34,6 +41,7 @@ static const char USAGE_MESSAGE[] =
     "\n"
     "  -t, --threads=N	use N parallel threads [1] (N>=2 should be used when input files are >=2)\n"
     "  -k, --kmer=N	the length of kmer \n"
+    "  -g, --gap=N	the length of gap in the gap seed [0]. g mod 2 must equal k mod 2 unless g == 0\n"
     "  -c, --cov=N	the maximum coverage of kmer in output [1000]\n"
     "  -p, --pref=STRING    the prefix for output file name(s)\n"
     "  -o, --output=STRING	the name for output file name (used when output should be a single "
@@ -46,8 +54,9 @@ static const char USAGE_MESSAGE[] =
 using namespace std;
 
 namespace opt {
-unsigned nThrd = 1;
-unsigned kmLen = 64;
+unsigned nThrd=1;
+unsigned kmLen=64;
+unsigned gap=0;
 size_t rBuck;
 unsigned rBits = 27;
 unsigned sBits = 11;
@@ -57,10 +66,12 @@ size_t nSamp = 2;
 size_t nK = 0;
 string prefix;
 string output;
-bool samH = true;
+bool samH=true;
+std::vector<std::vector<unsigned> > seedSet ;//= {{}};
+
 }
 
-static const char shortopts[] = "t:s:r:k:c:l:p:f:o:";
+static const char shortopts[] = "t:s:r:k:c:l:p:f:o:g:";
 
 enum
 {
@@ -69,11 +80,17 @@ enum
 };
 
 static const struct option longopts[] = {
-	{ "threads", required_argument, NULL, 't' },   { "kmer", required_argument, NULL, 'k' },
-	{ "cov", required_argument, NULL, 'c' },       { "rbit", required_argument, NULL, 'r' },
-	{ "sbit", required_argument, NULL, 's' },      { "output", required_argument, NULL, 'o' },
-	{ "pref", required_argument, NULL, 'p' },      { "help", no_argument, NULL, OPT_HELP },
-	{ "version", no_argument, NULL, OPT_VERSION }, { NULL, 0, NULL, 0 }
+    { "threads",	required_argument, NULL, 't' },
+    { "kmer",	required_argument, NULL, 'k' },
+    { "gap",	required_argument, NULL, 'g' },
+    { "cov",	required_argument, NULL, 'c' },
+    { "rbit",	required_argument, NULL, 'r' },
+    { "sbit",	required_argument, NULL, 's' },
+    { "output",	required_argument, NULL, 'o' },
+    { "pref",	required_argument, NULL, 'p' },
+    { "help",	no_argument, NULL, OPT_HELP },
+    { "version",	no_argument, NULL, OPT_VERSION },
+    { NULL, 0, NULL, 0 }
 };
 
 size_t
@@ -147,18 +164,34 @@ ntRead(const string& seq, const std::vector<unsigned>& kList, uint16_t* t_Counte
 	}
 }
 
-void
-getEfq(std::ifstream& in, const std::vector<unsigned>& kList, uint16_t* t_Counter, size_t totKmer[])
-{
-	bool good = true;
-	for (string seq, hseq; good;) {
-		good = static_cast<bool>(getline(in, seq));
-		good = static_cast<bool>(getline(in, hseq));
-		good = static_cast<bool>(getline(in, hseq));
-		if (good)
-			ntRead(seq, kList, t_Counter, totKmer);
-		good = static_cast<bool>(getline(in, hseq));
-	}
+inline void stRead(const string &seq, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
+    for(unsigned k=0; k<kList.size(); k++) {
+	    //stHashIterator ssitr(seq, seedSet, 1, 5, seedString[0].size());
+        stHashIterator itr(seq, opt::seedSet, 1, 1, kList[k]);
+        while (itr != itr.end()) {
+            ntComp((const uint64_t)(*itr)[0],t_Counter+k*opt::nSamp*opt::rBuck);
+            ++itr;
+            ++totKmer[k];
+        }
+    }
+}
+
+void getEfq(std::ifstream &in, const std::vector<unsigned> &kList, uint16_t *t_Counter, size_t totKmer[]) {
+    bool good = true;
+    for(string seq, hseq; good;) {
+        good = static_cast<bool>(getline(in, seq));
+        good = static_cast<bool>(getline(in, hseq));
+        good = static_cast<bool>(getline(in, hseq));
+        if(good && opt::gap == 0)
+        {
+            ntRead(seq, kList, t_Counter, totKmer);
+        }
+        if(good && opt::gap != 0)
+        {
+            stRead(seq, kList, t_Counter, totKmer);
+        }
+        good = static_cast<bool>(getline(in, hseq));
+    }
 }
 
 void
@@ -279,107 +312,123 @@ outCompact(const std::vector<unsigned>& kList, const size_t totalKmers[], const 
 	histFile.close();
 }
 
-int
-main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
 
-	double sTime = omp_get_wtime();
+    double sTime = omp_get_wtime();
 
-	vector<unsigned> kList;
-	bool die = false;
-	for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
-		std::istringstream arg(optarg != NULL ? optarg : "");
-		switch (c) {
-		case '?':
-			die = true;
-			break;
-		case 't':
-			arg >> opt::nThrd;
-			break;
-		case 's':
-			arg >> opt::sBits;
-			break;
-		case 'r':
-			arg >> opt::rBits;
-			break;
-		case 'c':
-			arg >> opt::covMax;
-			if (opt::covMax > 65535)
-				opt::covMax = 65535;
-			break;
-		case 'p':
-			arg >> opt::prefix;
-			break;
-		case 'o':
-			arg >> opt::output;
-			break;
-		case 'k': {
-			std::string token;
-			while (getline(arg, token, ',')) {
-				unsigned myK;
-				std::stringstream ss(token);
-				ss >> myK;
-				kList.push_back(myK);
-				++opt::nK;
-			}
-			break;
-		}
-		case OPT_HELP:
-			std::cerr << USAGE_MESSAGE;
-			exit(EXIT_SUCCESS);
-		case OPT_VERSION:
-			std::cerr << VERSION_MESSAGE;
-			exit(EXIT_SUCCESS);
-		}
-		if (optarg != NULL && !arg.eof()) {
-			std::cerr << PROGRAM ": invalid option: `-" << (char)c << optarg << "'\n";
-			exit(EXIT_FAILURE);
-		}
-	}
-	if (argc - optind < 1) {
-		std::cerr << PROGRAM ": missing arguments\n";
-		die = true;
-	}
+    vector<unsigned> kList;
+    bool die = false;
+    for (int c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
+        std::istringstream arg(optarg != NULL ? optarg : "");
+        switch (c) {
+        case '?':
+            die = true;
+            break;
+        case 't':
+            arg >> opt::nThrd;
+            break;
+        case 's':
+            arg >> opt::sBits;
+            break;
+        case 'r':
+            arg >> opt::rBits;
+            break;
+        case 'c':
+            arg >> opt::covMax;
+            if(opt::covMax>65535)
+                opt::covMax = 65535;
+            break;
+        case 'p':
+            arg >> opt::prefix;
+            break;
+        case 'o':
+            arg >> opt::output;
+            break;
+        case 'g':
+            arg >> opt::gap;
+            break;
+        case 'k':
+        {
+            std::string token;
+            while(getline(arg, token, ',')) {
+                unsigned myK;
+                std::stringstream ss(token);
+                ss >> myK;
+                kList.push_back(myK);
+                ++opt::nK;
+            }
+            break;
+        }
+        case OPT_HELP:
+            std::cerr << USAGE_MESSAGE;
+            exit(EXIT_SUCCESS);
+        case OPT_VERSION:
+            std::cerr << VERSION_MESSAGE;
+            exit(EXIT_SUCCESS);
+        }
+        if (optarg != NULL && !arg.eof()) {
+            std::cerr << PROGRAM ": invalid option: `-"
+                      << (char)c << optarg << "'\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+    if (argc - optind < 1) {
+        std::cerr << PROGRAM ": missing arguments\n";
+        die = true;
+    }
 
-	if (opt::nK == 0) {
-		std::cerr << PROGRAM ": missing argument -k ... \n";
-		die = true;
-	}
+    if (opt::gap != 0 && (opt::gap % 2 != kList[0] % 2)){
+        std::cerr << PROGRAM "Gap size and kmer must have the same modulus\n";
+        die = true;
+    }
 
-	if (opt::prefix.empty() && opt::output.empty()) {
-		std::cerr << PROGRAM ": missing argument -p/-o ... \n";
-		die = true;
-	}
+    if (opt::nK == 0) {
+        std::cerr << PROGRAM ": missing argument -k ... \n";
+        die = true;
+    }
 
-	if (die) {
-		std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
-		exit(EXIT_FAILURE);
-	}
-	vector<string> inFiles;
-	for (int i = optind; i < argc; ++i) {
-		string file(argv[i]);
-		if (file[0] == '@') {
-			string inName;
-			ifstream inList(file.substr(1, file.length()).c_str());
-			while (getline(inList, inName))
-				inFiles.push_back(inName);
-		} else
-			inFiles.push_back(file);
-	}
+    if (opt::prefix.empty() && opt::output.empty()) {
+        std::cerr << PROGRAM ": missing argument -p/-o ... \n";
+        die = true;
+    }
 
-	size_t totalSize = 0;
-	for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i)
-		totalSize += getInf(inFiles[file_i].c_str());
-	if (totalSize < 50000000000)
-		opt::sBits = 7;
+    if (die) {
+        std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
+        exit(EXIT_FAILURE);
+    }
 
-	size_t totalKmers[kList.size()];
-	for (unsigned k = 0; k < kList.size(); k++)
-		totalKmers[k] = 0;
+    if (opt::gap != 0) {
+        std::string gap(opt::gap, '0');
+        std::string nonGap((kList[0] - opt::gap) / 2, '1');
+        std::vector<std::string> seedString;
+        seedString.push_back(nonGap + gap + nonGap);
+        opt::seedSet = stHashIterator::parseSeed(seedString);
+    }
 
-	opt::rBuck = ((size_t)1) << opt::rBits;
-	opt::sMask = (((size_t)1) << (opt::sBits - 1)) - 1;
-	uint16_t* t_Counter = new uint16_t[opt::nK * opt::nSamp * opt::rBuck]();
+    vector<string> inFiles;
+    for (int i = optind; i < argc; ++i) {
+        string file(argv[i]);
+        if(file[0]=='@') {
+            string inName;
+            ifstream inList(file.substr(1,file.length()).c_str());
+            while(getline(inList,inName))
+                inFiles.push_back(inName);
+        }
+        else
+            inFiles.push_back(file);
+    }
+
+    size_t totalSize=0;
+    for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i)
+        totalSize += getInf(inFiles[file_i].c_str());
+    if(totalSize<50000000000) opt::sBits=7;
+
+    size_t totalKmers[kList.size()];
+    for(unsigned k=0; k<kList.size(); k++) totalKmers[k]=0;
+
+    opt::rBuck = ((size_t)1) << opt::rBits;
+    opt::sMask = (((size_t)1) << (opt::sBits-1))-1;
+    uint16_t *t_Counter = new uint16_t [opt::nK*opt::nSamp*opt::rBuck]();
 
 #ifdef _OPENMP
 	omp_set_num_threads(opt::nThrd);
