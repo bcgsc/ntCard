@@ -22,3 +22,6 @@ jobs:
       ./configure
       make
     displayName: Compiling ntCard
+  - script: |
+      make check
+    displayName: Integration test

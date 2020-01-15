@@ -34,3 +34,12 @@ dist_doc_DATA = \
 	README.md
 
 EXTRA_DIST=autogen.sh
+
+test-data.tar.gz:
+	wget https://www.bcgsc.ca/sites/default/files/bioinformatics/software/abyss/releases/1.3.4/test-data.tar.gz
+
+test_k12.hist: test-data.tar.gz
+	./ntcard -k 12 -p test test-data.tar.gz
+
+check: test_k12.hist
+	diff -q test_k12.hist data/test_k12.hist.good
