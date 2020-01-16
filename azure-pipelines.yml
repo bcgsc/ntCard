@@ -24,5 +24,6 @@ jobs:
       sudo apt-get update
       sudo apt-get install -y --no-install-recommends clang-format-7
       sudo ln -s clang-format-7 /usr/bin/clang-format
+    displayName: Install clang-format
   - script: make clang-format
     displayName: Run clang-format
