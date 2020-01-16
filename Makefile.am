@@ -54,3 +54,9 @@ check-rna: test-rna_k12.hist
 	diff -q test-rna_k12.hist data/test_k12.hist.good
 
 check: check-dna check-rna
+
+# Check the C++ source code for white-space errors with clang-format.
+clang-format:
+	for i in ntcard.cpp; do clang-format -style=file $$i >$$i.fixed; done
+	for i in ntcard.cpp; do diff -su $$i $$i.fixed && rm -f $$i.fixed; done
+	if ls *.fixed; then exit 1; fi
