@@ -35,11 +35,22 @@ dist_doc_DATA = \
 
 EXTRA_DIST=autogen.sh
 
-test-data.tar.gz:
-	wget https://www.bcgsc.ca/sites/default/files/bioinformatics/software/abyss/releases/1.3.4/test-data.tar.gz
+test-reads.fq.gz:
+	wget https://www.bcgsc.ca/downloads/btl/ntcard/test-reads.fq.gz
 
-test_k12.hist: test-data.tar.gz
-	./ntcard -k 12 -p test test-data.tar.gz
+test-rna-reads.fq.gz:
+	wget https://www.bcgsc.ca/downloads/btl/ntcard/test-rna-reads.fq.gz
 
-check: test_k12.hist
+test_k12.hist: test-reads.fq.gz
+	./ntcard -k 12 -p test test-reads.fq.gz
+
+test-rna_k12.hist: test-rna-reads.fq.gz
+	./ntcard -k 12 -p test-rna test-rna-reads.fq.gz
+
+check-dna: test_k12.hist
 	diff -q test_k12.hist data/test_k12.hist.good
+
+check-rna: test-rna_k12.hist
+	diff -q test-rna_k12.hist data/test_k12.hist.good
+
+check: check-dna check-rna
