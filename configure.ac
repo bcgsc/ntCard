@@ -86,5 +86,9 @@ AC_SUBST(LDFLAGS, "$OPENMP_CXXFLAGS $LDFLAGS")
 AC_SUBST(AM_CXXFLAGS, '-Wall -Wextra -Werror')
 
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([
+	Makefile
+	vendor/Makefile
+	data/Makefile
+])
 AC_OUTPUT

@@ -33,7 +33,11 @@ dist_doc_DATA = \
 	LICENSE \
 	README.md
 
-EXTRA_DIST=autogen.sh
+EXTRA_DIST= autogen.sh
+
+SUBDIRS = \
+        vendor \
+        data
 
 test-reads.fq.gz:
 	wget https://www.bcgsc.ca/downloads/btl/ntcard/test-reads.fq.gz
@@ -48,10 +52,10 @@ test-rna_k12.hist: test-rna-reads.fq.gz
 	./ntcard -k 12 -p test-rna test-rna-reads.fq.gz
 
 check-dna: test_k12.hist
-	diff -q test_k12.hist data/test_k12.hist.good
+	diff -q test_k12.hist $(srcdir)/data/test_k12.hist.good
 
 check-rna: test-rna_k12.hist
-	diff -q test-rna_k12.hist data/test_k12.hist.good
+	diff -q test-rna_k12.hist $(srcdir)/data/test_k12.hist.good
 
 check: check-dna check-rna
 
