@@ -66,7 +66,7 @@ clang-format:
 	if ls *.fixed; then exit 1; fi
 
 clean-local:
-        rm test-reads.fq.gz
-        rm test_k12.hist
-        rm test-rna-reads.fq.gz
-        rm test-rna_k12.hist
+	rm test-reads.fq.gz
+	rm test_k12.hist
+	rm test-rna-reads.fq.gz
+	rm test-rna_k12.hist
