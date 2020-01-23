@@ -8,7 +8,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "ntHashIterator.hpp"
+#include "vendor/ntHash/ntHashIterator.hpp"
 #include "Uncompress.h"
 
 #ifdef _OPENMP
@@ -97,9 +97,9 @@ inline void ntComp(const uint64_t hVal, uint8_t *mVec) {
 }
 
 inline void ntRead(const string &seq, uint8_t *mVec) {
-    ntHashIterator itr(seq, opt::kmLen);
+    ntHashIterator itr(seq, 1, opt::kmLen);
     while (itr != itr.end()) {
-        ntComp((*itr),mVec);
+        ntComp((*itr)[0], mVec);
         ++itr;
     }
 }

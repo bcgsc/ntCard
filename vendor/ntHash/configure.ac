@@ -1,9 +1,9 @@
 AC_PREREQ(2.62)
-AC_INIT(NTCARD, 1.1.0, hmohamadi@bcgsc.ca, ntcard,
-		https://github.com/bcgsc/ntCard)
+AC_INIT(NTHASH, 2.1.0, hmohamadi@bcgsc.ca, ntHash,
+		https://github.com/bcgsc/ntHash)
 # add 'foreign' to allow README.md instead of README
 AM_INIT_AUTOMAKE([foreign subdir-objects])
-AC_CONFIG_SRCDIR([ntcard.cpp])
+AC_CONFIG_SRCDIR([nttest.cpp])
 AC_CONFIG_HEADER([config.h])
 
 if test -z $CXXFLAGS; then
@@ -70,9 +70,6 @@ AM_CONDITIONAL([HAVE_LIBZ],
 # Check for OpenMP.
 AC_LANG_PUSH([C++])
 AC_OPENMP
-if test -z $OPENMP_CXXFLAGS; then
-	AC_MSG_ERROR([NTCARD must be compiled with a C++ compiler that supports OpenMP threading.])
-fi
 AC_LANG_POP([C++])
 
 # Find the absolute path to the source.
@@ -88,7 +85,7 @@ AC_SUBST(AM_CXXFLAGS, '-Wall -Wextra -Werror')
 
 AC_CONFIG_FILES([
 	Makefile
+	unittest/Makefile
 	vendor/Makefile
-	data/Makefile
 ])
 AC_OUTPUT

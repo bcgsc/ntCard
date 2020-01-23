@@ -1,5 +1,5 @@
 #include "Uncompress.h"
-#include "ntHashIterator.hpp"
+#include "vendor/ntHash/ntHashIterator.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -138,9 +138,9 @@ inline void
 ntRead(const string& seq, const std::vector<unsigned>& kList, uint16_t* t_Counter, size_t totKmer[])
 {
 	for (unsigned k = 0; k < kList.size(); k++) {
-		ntHashIterator itr(seq, kList[k]);
+		ntHashIterator itr(seq, 1, kList[k]);
 		while (itr != itr.end()) {
-			ntComp((*itr), t_Counter + k * opt::nSamp * opt::rBuck);
+			ntComp((*itr)[0], t_Counter + k * opt::nSamp * opt::rBuck);
 			++itr;
 			++totKmer[k];
 		}
