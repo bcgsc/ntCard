@@ -10,7 +10,6 @@ ntcard_SOURCES = \
         Common/StringUtil.h \
         Common/Fcontrol.cpp \
         Common/Fcontrol.h \
-        Common/ntHashIterator.hpp \
         ntcard.cpp
 
 nthll_CPPFLAGS = -I$(top_srcdir)/Common
@@ -22,7 +21,6 @@ nthll_SOURCES = \
         Common/SignalHandler.h \
         Common/Fcontrol.cpp \
         Common/Fcontrol.h \
-        Common/ntHashIterator.hpp \
         nthll.cpp
 
 dist_doc_DATA = \
