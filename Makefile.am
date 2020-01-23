@@ -10,7 +10,6 @@ ntcard_SOURCES = \
         Common/StringUtil.h \
         Common/Fcontrol.cpp \
         Common/Fcontrol.h \
-        Common/nthash.hpp \
         Common/ntHashIterator.hpp \
         ntcard.cpp
 
@@ -23,7 +22,6 @@ nthll_SOURCES = \
         Common/SignalHandler.h \
         Common/Fcontrol.cpp \
         Common/Fcontrol.h \
-        Common/nthash.hpp \
         Common/ntHashIterator.hpp \
         nthll.cpp
 
