@@ -1,5 +1,6 @@
 #include "Uncompress.h"
 #include "vendor/ntHash/ntHashIterator.hpp"
+#include "vendor/ntHash/stHashIterator.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -11,13 +12,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <cstdlib>
-#include <getopt.h>
-#include <cassert>
-#include <cmath>
-#include "ntHashIterator.hpp"
-#include "stHashIterator.hpp"
-#include "Uncompress.h"
 
 #ifdef _OPENMP
 #include <omp.h>
