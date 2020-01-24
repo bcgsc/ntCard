@@ -1,5 +1,6 @@
 #include "Uncompress.h"
 #include "vendor/ntHash/ntHashIterator.hpp"
+#include "vendor/ntHash/stHashIterator.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -34,6 +35,9 @@ static const char USAGE_MESSAGE[] =
     "\n"
     "  -t, --threads=N	use N parallel threads [1] (N>=2 should be used when input files are >=2)\n"
     "  -k, --kmer=N	the length of kmer \n"
+    "  -g, --gap=N	the length of gap in the gap seed [0]. g mod 2 must equal k mod 2 unless g == "
+    "0\n"
+    "           	-g does not support multiple k currently.\n"
     "  -c, --cov=N	the maximum coverage of kmer in output [1000]\n"
     "  -p, --pref=STRING    the prefix for output file name(s)\n"
     "  -o, --output=STRING	the name for output file name (used when output should be a single "
@@ -48,6 +52,7 @@ using namespace std;
 namespace opt {
 unsigned nThrd = 1;
 unsigned kmLen = 64;
+unsigned gap = 0;
 size_t rBuck;
 unsigned rBits = 27;
 unsigned sBits = 11;
@@ -58,9 +63,10 @@ size_t nK = 0;
 string prefix;
 string output;
 bool samH = true;
+std::vector<std::vector<unsigned> > seedSet;
 }
 
-static const char shortopts[] = "t:s:r:k:c:l:p:f:o:";
+static const char shortopts[] = "t:s:r:k:c:l:p:f:o:g:";
 
 enum
 {
@@ -68,13 +74,17 @@ enum
 	OPT_VERSION
 };
 
-static const struct option longopts[] = {
-	{ "threads", required_argument, NULL, 't' },   { "kmer", required_argument, NULL, 'k' },
-	{ "cov", required_argument, NULL, 'c' },       { "rbit", required_argument, NULL, 'r' },
-	{ "sbit", required_argument, NULL, 's' },      { "output", required_argument, NULL, 'o' },
-	{ "pref", required_argument, NULL, 'p' },      { "help", no_argument, NULL, OPT_HELP },
-	{ "version", no_argument, NULL, OPT_VERSION }, { NULL, 0, NULL, 0 }
-};
+static const struct option longopts[] = { { "threads", required_argument, NULL, 't' },
+	                                      { "kmer", required_argument, NULL, 'k' },
+	                                      { "gap", required_argument, NULL, 'g' },
+	                                      { "cov", required_argument, NULL, 'c' },
+	                                      { "rbit", required_argument, NULL, 'r' },
+	                                      { "sbit", required_argument, NULL, 's' },
+	                                      { "output", required_argument, NULL, 'o' },
+	                                      { "pref", required_argument, NULL, 'p' },
+	                                      { "help", no_argument, NULL, OPT_HELP },
+	                                      { "version", no_argument, NULL, OPT_VERSION },
+	                                      { NULL, 0, NULL, 0 } };
 
 size_t
 getInf(const char* inFile)
@@ -147,6 +157,19 @@ ntRead(const string& seq, const std::vector<unsigned>& kList, uint16_t* t_Counte
 	}
 }
 
+inline void
+stRead(const string& seq, const std::vector<unsigned>& kList, uint16_t* t_Counter, size_t totKmer[])
+{
+	for (unsigned k = 0; k < kList.size(); k++) {
+		stHashIterator itr(seq, opt::seedSet, 1, 1, kList[k]);
+		while (itr != itr.end()) {
+			ntComp((const uint64_t)(*itr)[0], t_Counter + k * opt::nSamp * opt::rBuck);
+			++itr;
+			++totKmer[k];
+		}
+	}
+}
+
 void
 getEfq(std::ifstream& in, const std::vector<unsigned>& kList, uint16_t* t_Counter, size_t totKmer[])
 {
@@ -155,8 +178,12 @@ getEfq(std::ifstream& in, const std::vector<unsigned>& kList, uint16_t* t_Counte
 		good = static_cast<bool>(getline(in, seq));
 		good = static_cast<bool>(getline(in, hseq));
 		good = static_cast<bool>(getline(in, hseq));
-		if (good)
+		if (good && opt::gap == 0) {
 			ntRead(seq, kList, t_Counter, totKmer);
+		}
+		if (good && opt::gap != 0) {
+			stRead(seq, kList, t_Counter, totKmer);
+		}
 		good = static_cast<bool>(getline(in, hseq));
 	}
 }
@@ -172,7 +199,11 @@ getEfa(std::ifstream& in, const std::vector<unsigned>& kList, uint16_t* t_Counte
 			line += seq;
 			good = static_cast<bool>(getline(in, seq));
 		}
-		ntRead(line, kList, t_Counter, totKmer);
+		if (opt::gap == 0) {
+			ntRead(seq, kList, t_Counter, totKmer);
+		} else {
+			stRead(seq, kList, t_Counter, totKmer);
+		}
 	}
 }
 
@@ -195,7 +226,11 @@ getEsm(
 	do {
 		std::istringstream iss(samLine);
 		iss >> s1 >> s2 >> s3 >> s4 >> s5 >> s6 >> s7 >> s8 >> s9 >> seq >> s11;
-		ntRead(seq, kList, t_Counter, totKmer);
+		if (opt::gap == 0) {
+			ntRead(seq, kList, t_Counter, totKmer);
+		} else {
+			stRead(seq, kList, t_Counter, totKmer);
+		}
 	} while (getline(in, samLine));
 }
 
@@ -313,6 +348,9 @@ main(int argc, char** argv)
 		case 'o':
 			arg >> opt::output;
 			break;
+		case 'g':
+			arg >> opt::gap;
+			break;
 		case 'k': {
 			std::string token;
 			while (getline(arg, token, ',')) {
@@ -341,6 +379,11 @@ main(int argc, char** argv)
 		die = true;
 	}
 
+	if (opt::gap != 0 && (opt::gap % 2 != kList[0] % 2)) {
+		std::cerr << PROGRAM "Gap size and kmer must have the same modulus\n";
+		die = true;
+	}
+
 	if (opt::nK == 0) {
 		std::cerr << PROGRAM ": missing argument -k ... \n";
 		die = true;
@@ -351,10 +394,24 @@ main(int argc, char** argv)
 		die = true;
 	}
 
+	if (opt::gap != 0 && kList.size() != 1) {
+		std::cerr << PROGRAM ": -g does not support multiple k currently.\n";
+		die = true;
+	}
+
 	if (die) {
 		std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
 		exit(EXIT_FAILURE);
 	}
+
+	if (opt::gap != 0) {
+		std::string gap(opt::gap, '0');
+		std::string nonGap((kList[0] - opt::gap) / 2, '1');
+		std::vector<std::string> seedString;
+		seedString.push_back(nonGap + gap + nonGap);
+		opt::seedSet = stHashIterator::parseSeed(seedString);
+	}
+
 	vector<string> inFiles;
 	for (int i = optind; i < argc; ++i) {
 		string file(argv[i]);

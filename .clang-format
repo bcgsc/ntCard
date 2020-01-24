@@ -7,3 +7,4 @@ IndentCaseLabels: false
 IndentWidth: 4
 TabWidth: 4
 UseTab: ForIndentation
+Standard: C++03

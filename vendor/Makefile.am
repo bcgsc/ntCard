@@ -1,3 +1,4 @@
 noinst_HEADERS = \
+    ntHash/nthash.hpp \
 	ntHash/ntHashIterator.hpp \
-    ntHash/nthash.hpp
+    ntHash/stHashIterator.hpp
