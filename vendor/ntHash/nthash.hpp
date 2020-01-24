@@ -631,9 +631,11 @@ inline bool NTMSM64(const char *kmerSeq, const std::vector<std::vector<unsigned>
         fhVal = swapbits033(fhVal);
         fhVal ^= seedTab[(unsigned char)kmerSeq[k-1-i]];
         rhVal = rol1(rhVal);
+
         rhVal = swapbits033(rhVal);
         rhVal ^= seedTab[(unsigned char)kmerSeq[i]&cpOff];
     }
+
     for(unsigned j=0; j<m; j++) {
         uint64_t fsVal=fhVal, rsVal=rhVal;
         for(std::vector<unsigned>::const_iterator i=seedSeq[j].begin(); i!=seedSeq[j].end(); ++i) {
