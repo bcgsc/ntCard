@@ -64,7 +64,6 @@ string prefix;
 string output;
 bool samH = true;
 std::vector<std::vector<unsigned> > seedSet;
-
 }
 
 static const char shortopts[] = "t:s:r:k:c:l:p:f:o:g:";
