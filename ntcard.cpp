@@ -63,7 +63,7 @@ size_t nK = 0;
 string prefix;
 string output;
 bool samH = true;
-std::vector<std::vector<unsigned>> seedSet;
+std::vector<std::vector<unsigned> > seedSet;
 
 }
 
