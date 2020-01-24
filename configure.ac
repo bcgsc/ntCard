@@ -67,11 +67,6 @@ AC_CHECK_LIB([z], [gzwrite])
 AM_CONDITIONAL([HAVE_LIBZ],
 	[test $ac_cv_header_zlib_h = yes -a $ac_cv_lib_z_gzwrite = yes])
 
-# FLag std=c++11
-AC_CONFIG_MACRO_DIR([m4])
-m4_include([m4/ax_cxx_compile_stdcxx.m4])
-AX_CXX_COMPILE_STDCXX(11, noext, mandatory)
-
 # Check for OpenMP.
 AC_LANG_PUSH([C++])
 AC_OPENMP
