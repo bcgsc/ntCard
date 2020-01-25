@@ -24,3 +24,17 @@ jobs:
     displayName: Install clang-format
   - script: make clang-format
     displayName: Run clang-format
+
+- job: macOS_default_gcc
+  pool:
+    vmImage: macOS-10.14
+  steps:
+  - script: |
+      brew update
+      brew install automake
+    displayName: Install common
+  - script: |
+      ./autogen.sh
+      ./configure
+      make distcheck
+    displayName: Compiling ntCard with default gcc
