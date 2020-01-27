@@ -200,9 +200,9 @@ getEfa(std::ifstream& in, const std::vector<unsigned>& kList, uint16_t* t_Counte
 			good = static_cast<bool>(getline(in, seq));
 		}
 		if (opt::gap == 0) {
-			ntRead(seq, kList, t_Counter, totKmer);
+			ntRead(line, kList, t_Counter, totKmer);
 		} else {
-			stRead(seq, kList, t_Counter, totKmer);
+			stRead(line, kList, t_Counter, totKmer);
 		}
 	}
 }
