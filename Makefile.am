@@ -41,17 +41,26 @@ test-reads.fq.gz:
 test-rna-reads.fq.gz:
 	wget https://www.bcgsc.ca/downloads/btl/ntcard/test-rna-reads.fq.gz
 
+test-reads.fa: test-reads.fq.gz
+	zcat test-reads.fq.gz |sed -n '1~4s/^@/>/p;2~4p' > test-reads.fa
+
 test_k12.hist: test-reads.fq.gz
 	./ntcard -k 12 -p test test-reads.fq.gz
 
 test-rna_k12.hist: test-rna-reads.fq.gz
 	./ntcard -k 12 -p test-rna test-rna-reads.fq.gz
 
+test-fa_k12.hist: test-reads.fa
+	./ntcard -k 12 -p test-fa test-reads.fa
+
 test-gap_k12.hist: test-reads.fq.gz
 	./ntcard -k 12 -p test-gap -g 2 test-reads.fq.gz
 
 test-rna-gap_k12.hist: test-rna-reads.fq.gz
 	./ntcard -k 12 -p test-rna-gap -g 2 test-rna-reads.fq.gz
+
+test-fa-gap_k12.hist: test-reads.fa
+	./ntcard -k 12 -p test-fa-gap -g 2 test-reads.fa
 
 check-dna: test_k12.hist
 	diff -q test_k12.hist $(srcdir)/data/test_k12.hist.good
@@ -65,7 +74,13 @@ check-rna: test-rna_k12.hist
 check-rna-gap: test-rna-gap_k12.hist
 	diff -q test-rna-gap_k12.hist $(srcdir)/data/test-gap_k12.hist.good
 
-check: check-dna check-rna check-dna-gap check-rna-gap
+check-fa: test-fa_k12.hist
+	diff -q test-fa_k12.hist $(srcdir)/data/test_k12.hist.good
+
+check-fa-gap: test-fa-gap_k12.hist
+	diff -q test-fa-gap_k12.hist $(srcdir)/data/test-gap_k12.hist.good
+
+check: check-dna check-rna check-fa check-dna-gap check-rna-gap check-fa-gap
 
 # Check the C++ source code for white-space errors with clang-format.
 clang-format:
@@ -80,3 +95,6 @@ clean-local:
 	rm test-rna-reads.fq.gz
 	rm test-rna_k12.hist
 	rm test-rna-gap_k12.hist
+	rm test-reads.fa
+	rm test-fa_k12.hist
+	rm test-fa-gap_k12.hist
