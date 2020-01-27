@@ -18,7 +18,7 @@
 #define PROGRAM "nthll"
 
 static const char VERSION_MESSAGE[] =
-    PROGRAM " 1.2.0 \n"
+    PROGRAM " 1.2.1 \n"
     "Written by Hamid Mohamadi.\n"
     "Copyright 2018 Hamid Mohamadi, Licensed under MIT License\n";
 
