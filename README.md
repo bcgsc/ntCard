@@ -1,6 +1,5 @@
 [![Release](https://img.shields.io/github/release/bcgsc/ntCard.svg)](https://github.com/bcgsc/ntCard/releases)
-[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntCard/total?logo=github)](ntcard-1.2.1.tar.gz
-)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntCard/total?logo=github)](https://github.com/bcgsc/ntCard/releases/download/1.2.1/ntcard-1.2.1.tar.gz)
 [![Conda](https://img.shields.io/conda/dn/bioconda/ntcard?label=Conda)](https://anaconda.org/bioconda/ntcard)
 [![Issues](https://img.shields.io/github/issues/bcgsc/ntCard.svg)](https://github.com/bcgsc/ntCard/issues)
 
