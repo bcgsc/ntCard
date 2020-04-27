@@ -1,3 +1,12 @@
+[![Release](https://img.shields.io/github/release/bcgsc/ntCard.svg)](https://github.com/bcgsc/ntCard/releases)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntCard/total?logo=github)](ntcard-1.2.1.tar.gz
+)
+[![Conda](https://img.shields.io/conda/dn/bioconda/ntcard?label=Conda)](https://anaconda.org/bioconda/ntcard)
+[![Issues](https://img.shields.io/github/issues/bcgsc/ntCard.svg)](https://github.com/bcgsc/ntCard/issues)
+
+![Logo](https://github.com/bcgsc/ntCard/blob/master/ntcard-logo.png)
+
+
 ntCard 
 =
 ntCard is a streaming algorithm for cardinality estimation in genomics datasets. As input it takes file(s) in fasta, fastq, sam, or bam formats and computes the total number of distinct k-mers, *F<sub>0</sub>*, and also the *k*-mer coverage frequency histogram, *f<sub>i</sub>*, *i>=1*.  
