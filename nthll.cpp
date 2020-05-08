@@ -20,7 +20,7 @@
 static const char VERSION_MESSAGE[] =
     PROGRAM " 1.2.1 \n"
     "Written by Hamid Mohamadi.\n"
-    "Copyright 2020 Hamid Mohamadi, Licensed under MIT License\n";
+    "Copyright 2018 Hamid Mohamadi, Licensed under MIT License\n";
 
 static const char USAGE_MESSAGE[] =
     "Usage: " PROGRAM " [OPTION]... FILE(S)...\n"
