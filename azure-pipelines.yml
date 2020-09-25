@@ -24,3 +24,41 @@ jobs:
     displayName: Install clang-format
   - script: make clang-format
     displayName: Run clang-format
+
+- job: linux_gcc-9
+  pool:
+    vmImage: Ubuntu 16.04
+  steps:
+  - script: |
+      sudo apt-get update -qq
+      sudo apt-get install -qq software-properties-common
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+      sudo apt-get update -qq
+      sudo apt-get install -qq autoconf automake gcc-9 g++-9 make
+    displayName: Install common
+  - script: |
+      ./autogen.sh
+      export DISTCHECK_CONFIGURE_FLAGS="CC=gcc-9 CXX=g++-9"
+      ./configure CC=gcc-9 CXX=g++-9
+      make distcheck
+    displayName: Compiling and testing ntCard
+    
+- job: linux_clang9
+  pool:
+    vmImage: Ubuntu 16.04
+  steps:
+  - script: |
+      sudo apt-get update -qq
+      sudo apt-get install -qq software-properties-common
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+      sudo apt-get update -qq
+      sudo apt-get install -qq autoconf automake gcc-9 g++-9 make
+    displayName: Install common
+  - script: sudo apt-get install -qq clang-9
+    displayName: Install clang-9
+  - script: |
+      ./autogen.sh
+      export DISTCHECK_CONFIGURE_FLAGS="CC=clang-9 CXX=clang++-9"
+      ./configure CC=clang-9 CXX=clang++-9
+      make distcheck
+    displayName: Compiling ABySS with clang 9
