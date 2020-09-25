@@ -70,7 +70,7 @@ jobs:
   - script: |
       brew update
       brew install automake make
-      brew install gcc --without-multilib
+      brew install gcc
     displayName: Install common
   - script: |
       ./autogen.sh
@@ -89,6 +89,6 @@ jobs:
   - script: |
       ./autogen.sh
       export DISTCHECK_CONFIGURE_FLAGS="CC=clang CXX=clang++ CPPFLAGS = -I/usr/local/opt/llvm/include -fopenmp LDFLAGS = -L/usr/local/opt/llvm/lib"
-      ./configure CC=clang CXX=clang++ CPPFLAGS = -I/usr/local/opt/llvm/include -fopenmp LDFLAGS = -L/usr/local/opt/llvm/lib
+      ./configure CC=clang CXX=clang++ CPPFLAGS="-I/usr/local/opt/llvm/include -fopenmp" LDFLAGS="-L/usr/local/opt/llvm/lib"
       make distcheck
     displayName: Compiling and testing ntCard with default clang
