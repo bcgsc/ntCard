@@ -70,7 +70,7 @@ jobs:
   - script: |
       brew update
       brew install automake make
-      brew install gcc
+      brew install gcc libomp
     displayName: Install common
   - script: |
       ./autogen.sh
@@ -84,7 +84,7 @@ jobs:
   steps:
   - script: |
       brew update
-      brew install automake make llvm
+      brew install automake make llvm libomp
     displayName: Install common
   - script: |
       ./autogen.sh
