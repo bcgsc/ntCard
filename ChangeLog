@@ -1,3 +1,7 @@
+2020-09-25  Johnathan Wong <jowong@bcgsc.ca>
+	* Release version 1.2.2
+	* Fixed compilation error with gcc-9
+
 2020-01-27  Johnathan Wong <jowong@bcgsc.ca>
 
 	* Release version 1.2.1
