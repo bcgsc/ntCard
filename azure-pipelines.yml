@@ -62,33 +62,3 @@ jobs:
       ./configure CC=clang-9 CXX=clang++-9
       make distcheck
     displayName: Compiling and testing ntCard with clang 9
-
-- job: macOS_default_gcc
-  pool:
-    vmImage: macOS-10.14
-  steps:
-  - script: |
-      brew update
-      brew install automake make
-      brew install gcc libomp
-    displayName: Install common
-  - script: |
-      ./autogen.sh
-      ./configure
-      make distcheck
-    displayName: Compiling and testing ntCard with default gcc
-
-- job: macOS_default_clang
-  pool:
-    vmImage: macOS-10.14
-  steps:
-  - script: |
-      brew update
-      brew install automake make llvm libomp
-    displayName: Install common
-  - script: |
-      ./autogen.sh
-      export DISTCHECK_CONFIGURE_FLAGS="CC=clang CXX=clang++ CPPFLAGS = -I/usr/local/opt/llvm/include -fopenmp LDFLAGS = -L/usr/local/opt/llvm/lib"
-      ./configure CC=clang CXX=clang++ CPPFLAGS="-I/usr/local/opt/llvm/include -fopenmp" LDFLAGS="-L/usr/local/opt/llvm/lib"
-      make distcheck
-    displayName: Compiling and testing ntCard with default clang
