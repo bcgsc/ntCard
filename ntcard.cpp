@@ -163,7 +163,7 @@ stRead(const string& seq, const std::vector<unsigned>& kList, uint16_t* t_Counte
 	for (unsigned k = 0; k < kList.size(); k++) {
 		stHashIterator itr(seq, opt::seedSet, 1, 1, kList[k]);
 		while (itr != itr.end()) {
-			ntComp((const uint64_t)(*itr)[0], t_Counter + k * opt::nSamp * opt::rBuck);
+			ntComp((*itr)[0], t_Counter + k * opt::nSamp * opt::rBuck);
 			++itr;
 			++totKmer[k];
 		}
