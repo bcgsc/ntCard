@@ -103,6 +103,19 @@ If we have a list of input files `lib.in`, to run ntCard with `k=144` and `12` t
 ```
 $ ntcard -k144 -t12 -p freq @lib.in 
 ```
+
+Output:
+  * The numbers `Fk` provide useful statistics on the input sequences. By default, F0 and F1 are output to stdout along with runtime.
+      * `F0` denotes the number of distinct k-mers appearing in the stream sequences
+      * `F1` is the total number of k-mers in the input datasets
+      * `F2` is the Gini index of variation that can be used to show the diversity of k-mers and
+      * `F∞` results in the most frequent k-mer in the input reads.
+  * A tab separated output file with columns `k`, `f`, and `n`.
+      * `k` k-mer size
+      * `f` the frequency of a k-mer
+      * `n` the number of k-mers with frequency `f`
+
+
 Publications
 ============
 
