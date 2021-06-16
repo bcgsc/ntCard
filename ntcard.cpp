@@ -424,7 +424,7 @@ main(int argc, char** argv)
 			inFiles.push_back(file);
 	}
 
-	size_t totalSize = 0;
+	unsigned long long int totalSize = 0;
 	for (unsigned file_i = 0; file_i < inFiles.size(); ++file_i)
 		totalSize += getInf(inFiles[file_i].c_str());
 	if (totalSize < 50000000000)
