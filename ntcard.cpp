@@ -256,7 +256,7 @@ compEst(const uint16_t* t_Counter, double& F0Mean, double fMean[])
 	}
 
 	F0Mean = (ssize_t)(
-	    (opt::rBits * log(2) - log(pMean[0])) * 1.0 * ((size_t)1 << (opt::sBits + opt::rBits)));
+	    (opt::rBits * log(2) - log(pMean[0])) * 1.0 * ((unsigned long long)1 << (opt::sBits + opt::rBits)));
 	for (size_t i = 0; i < 65536; i++)
 		fMean[i] = 0;
 	if (pMean[0] * (log(pMean[0]) - opt::rBits * log(2)) == 0) {
@@ -289,9 +289,9 @@ outDefault(const std::vector<unsigned>& kList, const size_t totalKmers[], const 
 		double fMean[65536];
 		compEst(t_Counter + k * opt::nSamp * opt::rBuck, F0Mean, fMean);
 		histFiles[k] << "F1\t" << totalKmers[k] << "\n";
-		histFiles[k] << "F0\t" << (size_t)F0Mean << "\n";
+		histFiles[k] << "F0\t" << (unsigned long long)F0Mean << "\n";
 		for (size_t i = 1; i <= opt::covMax; i++)
-			histFiles[k] << i << "\t" << (size_t)fMean[i] << "\n";
+			histFiles[k] << i << "\t" << (unsigned long long)fMean[i] << "\n";
 	}
 	for (unsigned k = 0; k < opt::nK; k++)
 		histFiles[k].close();
@@ -307,9 +307,9 @@ outCompact(const std::vector<unsigned>& kList, const size_t totalKmers[], const 
 		double fMean[65536];
 		compEst(t_Counter + k * opt::nSamp * opt::rBuck, F0Mean, fMean);
 		std::cerr << "k=" << kList[k] << "\tF1\t" << totalKmers[k] << "\n";
-		std::cerr << "k=" << kList[k] << "\tF0\t" << (size_t)F0Mean << "\n";
+		std::cerr << "k=" << kList[k] << "\tF0\t" << (unsigned long long)F0Mean << "\n";
 		for (size_t i = 1; i <= opt::covMax; i++)
-			histFile << kList[k] << "\t" << i << "\t" << (size_t)fMean[i] << "\n";
+			histFile << kList[k] << "\t" << i << "\t" << (unsigned long long)fMean[i] << "\n";
 	}
 	histFile.close();
 }
