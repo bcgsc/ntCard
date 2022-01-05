@@ -1,7 +1,7 @@
 jobs:
 - job: linux
   pool:
-    vmImage: Ubuntu 16.04
+    vmImage: 'ubuntu-latest'
   steps:
   - script: |
       sudo apt-get update -qq
@@ -27,7 +27,7 @@ jobs:
 
 - job: linux_gcc9
   pool:
-    vmImage: Ubuntu 16.04
+    vmImage: 'ubuntu-latest'
   steps:
   - script: |
       sudo apt-get update -qq
@@ -45,7 +45,7 @@ jobs:
     
 - job: linux_clang9
   pool:
-    vmImage: Ubuntu 16.04
+    vmImage: 'ubuntu-latest'
   steps:
   - script: |
       sudo apt-get update -qq
