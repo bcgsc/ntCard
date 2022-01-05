@@ -20,7 +20,6 @@ jobs:
       sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main"
       sudo apt-get update
       sudo apt-get install -y --no-install-recommends clang-format
-      sudo ln -sf clang-format /usr/bin/clang-format
     displayName: Install clang-format
   - script: make clang-format
     displayName: Run clang-format
