@@ -256,7 +256,7 @@ compEst(const uint16_t* t_Counter, double& F0Mean, double fMean[])
 	}
 
 	F0Mean = (ssize_t)(
-		(opt::rBits * log(2) - log(pMean[0])) * 1.0 * ((uint64_t)1 << (opt::sBits + opt::rBits)));
+	    (opt::rBits * log(2) - log(pMean[0])) * 1.0 * ((uint64_t)1 << (opt::sBits + opt::rBits)));
 	for (size_t i = 0; i < 65536; i++)
 		fMean[i] = 0;
 	if (pMean[0] * (log(pMean[0]) - opt::rBits * log(2)) == 0) {
