@@ -68,7 +68,7 @@ main(int argc, char** argv)
 
 	auto num_threads = args.get<int>("-t");
 #ifdef _OPENMP
-	omp_set_num_threads(std::min(num_threads, (int)files.size()));
+	omp_set_num_threads(std::max(num_threads, (int)files.size()));
 #endif
 
 	auto max_coverage = args.get<unsigned>("-c");
