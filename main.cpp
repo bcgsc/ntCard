@@ -76,11 +76,10 @@ main(int argc, char** argv)
 	auto right_bits = args.get<unsigned>("-r");
 
 	ntcard::NtCard* ntc;
-
-	if (args.is_used("-k")) {
-		ntc = new ntcard::NtCard(args.get<unsigned>("-k"), left_bits, right_bits);;
-	} else if (args.is_used("-s")) {
+	if (args.is_used("-s")) {
 		ntc = new ntcard::SeedNtCard(args.get("-s"), left_bits, right_bits);
+	} else if (args.is_used("-k")) {
+		ntc = new ntcard::NtCard(args.get<unsigned>("-k"), left_bits, right_bits);
 	} else {
 		std::cerr << "Please specify k-mer length (-k) or spaced seed pattern (-s)" << std::endl;
 		std::cerr << args;
