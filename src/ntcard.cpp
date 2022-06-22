@@ -35,14 +35,14 @@ void
 ntcard::NtCard::update_estimations()
 {
 	unsigned p[1 << sizeof(counter_t)];
-	for (unsigned int& i : p)
-		i = 0;
+	for (unsigned int& p_i : p)
+		p_i = 0;
 	for (size_t j = 0; j < r_buck; j++)
 		++p[t_counter[j]];
 
 	double mean_p[1 << sizeof(counter_t)];
-	for (double& i : mean_p)
-		i = 0.0;
+	for (double& p_i : mean_p)
+		p_i = 0.0;
 	for (size_t i = 0; i < (1 << sizeof(counter_t)); i++) {
 		mean_p[i] += p[i];
 		mean_p[i] /= 1.0;

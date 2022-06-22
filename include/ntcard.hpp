@@ -40,7 +40,7 @@ class NtCard
 	  , mean_f0(0.0)
 	  , mean_f(new double[1 << sizeof(counter_t)])
 	{
-		t_counter = new counter_t[r_buck];
+		t_counter = new counter_t[r_buck]();
 	}
 
 	virtual void process(const std::string& seq);
