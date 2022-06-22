@@ -56,7 +56,7 @@ class SeedNtCard : public NtCard
   public:
 	explicit SeedNtCard(
 	    const std::string& seed,
-	    const unsigned left_bits = 11,
+	    const unsigned left_bits = 7,
 	    const unsigned right_bits = 27)
 	  : NtCard(seed.size(), left_bits, right_bits)
 	  , seed(seed)

@@ -35,7 +35,7 @@ main(int argc, char** argv)
 
 	args.add_argument("-l", "--left-bits")
 	    .help("Number of bits to take from the left for sampling")
-	    .default_value(11U)
+	    .default_value(7U)
 	    .scan<'u', unsigned>();
 
 	args.add_argument("-r", "--right-bits")
