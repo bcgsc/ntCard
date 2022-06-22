@@ -96,7 +96,10 @@ main(int argc, char** argv)
 	for (const auto& file : files) {
 		btllib::SeqReader reader(file, seq_reader_flags);
 		for (const auto& record : reader) {
-			ntc->process(record.seq);
+			if ((args.is_used("-s") && record.seq.size() >= args.get("-s").size()) ||
+			    args.is_used("-k") && record.seq.size() >= args.get<unsigned>("-k")) {
+				ntc->process(record.seq);
+			}
 		}
 	}
 
