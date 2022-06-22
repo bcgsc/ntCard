@@ -38,7 +38,7 @@ class NtCard
 	  , r_buck(((size_t)1) << right_bits)
 	  , left_mask((((size_t)1) << (left_bits - 1)) - 1)
 	  , mean_f0(0.0)
-	  , mean_f(new double[1 << sizeof(counter_t)])
+	  , mean_f(new double[1 << sizeof(counter_t) * 8])
 	{
 		t_counter = new counter_t[r_buck]();
 	}

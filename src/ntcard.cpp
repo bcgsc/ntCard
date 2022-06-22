@@ -34,33 +34,34 @@ ntcard::NtCard::update_counts(const uint64_t hash_value)
 void
 ntcard::NtCard::update_estimations()
 {
-	unsigned p[1 << sizeof(counter_t)];
+	size_t arr_size = 1 << sizeof(counter_t) * 8;
+	unsigned p[arr_size];
 	for (unsigned int& p_i : p)
 		p_i = 0;
 	for (size_t j = 0; j < r_buck; j++)
 		++p[t_counter[j]];
 
-	double mean_p[1 << sizeof(counter_t)];
+	double mean_p[arr_size];
 	for (double& p_i : mean_p)
 		p_i = 0.0;
-	for (size_t i = 0; i < (1 << sizeof(counter_t)); i++) {
+	for (size_t i = 0; i < arr_size; i++) {
 		mean_p[i] += p[i];
 		mean_p[i] /= 1.0;
 	}
 
 	mean_f0 =
 	    (ssize_t)((right_bits * log(2) - log(mean_p[0])) * 1.0 * ((size_t)1 << (left_bits + right_bits)));
-	for (size_t i = 0; i < (1 << sizeof(counter_t)); i++)
+	for (size_t i = 0; i < arr_size; i++)
 		mean_f[i] = 0;
 	mean_f[1] = -1.0 * mean_p[1] / (mean_p[0] * (log(mean_p[0]) - right_bits * log(2)));
-	for (size_t i = 2; i < (1 << sizeof(counter_t)); i++) {
+	for (size_t i = 2; i < arr_size; i++) {
 		double sum = 0.0;
 		for (size_t j = 1; j < i; j++)
 			sum += j * mean_p[i - j] * mean_f[j];
 		mean_f[i] = -1.0 * mean_p[i] / (mean_p[0] * (log(mean_p[0]) - right_bits * log(2))) -
 		            sum / (i * mean_p[0]);
 	}
-	for (size_t i = 1; i < (1 << sizeof(counter_t)); i++)
+	for (size_t i = 1; i < arr_size; i++)
 		mean_f[i] = abs((ssize_t)(mean_f[i] * mean_f0));
 }
 
