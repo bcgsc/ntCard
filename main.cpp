@@ -105,7 +105,7 @@ main(int argc, char** argv)
 	std::cout << "F1\t" << hist[0] << std::endl;
 	std::cout << "F0\t" << hist[1] << std::endl;
 	for (size_t i = 2; i < hist.size(); i++) {
-		std::cout << i << "\t" << hist[i] << std::endl;
+		std::cout << i - 1 << "\t" << hist[i] << std::endl;
 	}
 
 	return 0;
