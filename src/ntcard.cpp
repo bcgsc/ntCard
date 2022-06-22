@@ -27,7 +27,7 @@ ntcard::NtCard::update_counts(const uint64_t hash_value)
 	if (hash_value >> (64 - left_bits) == left_mask) {
 		size_t shifted_value = hash_value & (r_buck - 1);
 #pragma omp atomic
-		++t_counter[r_buck + shifted_value];
+		++t_counter[shifted_value];
 	}
 }
 
