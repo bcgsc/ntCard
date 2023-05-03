@@ -1,0 +1,30 @@
+project(
+    'ntCard',
+    'cpp',
+    version: '1.3.0',
+    license: 'MIT',
+    default_options: [
+        'cpp_std=c++17',
+        'werror=true',
+        'warning_level=3',
+        'optimization=3',
+    ],
+)
+
+dependencies = [
+    dependency('openmp'),
+    meson.get_compiler('cpp').find_library('btllib', static: true),
+]
+
+include_dirs = [
+    include_directories('include'),
+    include_directories('vendor/argparse/include'),
+]
+
+executable(
+    'ntcard',
+    'src/main.cpp',
+    dependencies: dependencies,
+    include_directories: include_dirs,
+    install: true,
+)

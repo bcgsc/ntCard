@@ -44,7 +44,7 @@ main(int argc, char** argv)
 	    .scan<'u', unsigned>();
 
 	args.add_argument("--long-mode")
-	    .help("Optimize sequence reader for long sequences (>5kb)")
+	    .help("Optimize file reader for long sequences (>5kb)")
 	    .default_value(false)
 	    .implicit_value(true);
 
@@ -93,11 +93,17 @@ main(int argc, char** argv)
 		seq_reader_flags = btllib::SeqReader::Flag::SHORT_MODE;
 	}
 
+	size_t min_seq_size = 0;
+	if (args.is_used("-s")) {
+		min_seq_size = args.get("-s").size();
+	} else if (args.is_used("-k")) {
+		min_seq_size = args.get<unsigned>("-k");
+	}
+
 	for (const auto& file : files) {
 		btllib::SeqReader reader(file, seq_reader_flags);
 		for (const auto& record : reader) {
-			if ((args.is_used("-s") && record.seq.size() >= args.get("-s").size()) ||
-			    args.is_used("-k") && record.seq.size() >= args.get<unsigned>("-k")) {
+			if (record.seq.size() >= min_seq_size) {
 				ntc->process(record.seq);
 			}
 		}
