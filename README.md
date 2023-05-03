@@ -3,121 +3,67 @@
 [![Conda](https://img.shields.io/conda/dn/bioconda/ntcard?label=Conda)](https://anaconda.org/bioconda/ntcard)
 [![Issues](https://img.shields.io/github/issues/bcgsc/ntCard.svg)](https://github.com/bcgsc/ntCard/issues)
 
-![Logo](https://github.com/bcgsc/ntCard/blob/master/ntcard-logo.png)
+![Logo](./ntcard-logo.png)
+
+ntCard is a streaming algorithm for cardinality estimation in genomics datasets. Input any number of file(s) in FASTA, FASTQ, SAM, or BAM formats, and ntCard will output the total number of distinct k-mers ($F_0$) and the *k*-mer coverage frequency histogram ($f_i; i \geq 1$).
 
 
-ntCard 
-=
-ntCard is a streaming algorithm for cardinality estimation in genomics datasets. As input it takes file(s) in fasta, fastq, sam, or bam formats and computes the total number of distinct k-mers, *F<sub>0</sub>*, and also the *k*-mer coverage frequency histogram, *f<sub>i</sub>*, *i>=1*.  
+# Installation
 
-
-## Install ntCard on macOS
-
-Install [Homebrew](https://brew.sh/), and run the command
-
-	brew install brewsci/bio/ntcard
-
-## Install ntCard on Linux
-
-Install [Linuxbrew](http://linuxbrew.sh/), and run the command
-
-	brew install brewsci/bio/ntcard
-
-Compiling ntCard from GitHub
-===========================
-
-When installing ntCard from GitHub source the following tools are
-required:
-
-* [Autoconf](http://www.gnu.org/software/autoconf)
-* [Automake](http://www.gnu.org/software/automake)
-
-To generate the configure script and make files:
-
-	./autogen.sh
- 
-Compiling ntCard from source
-===========================
-To compile and install ntCard in /usr/local:
+We recommend installing ntCard using `conda`, as this will automatically install the required dependencies:
 
 ```
-$ ./configure
-$ make 
-$ sudo make install 
+conda install -c bioconda ntcard
 ```
 
-To install ntCard in a specified directory:
+# Compiling from source
 
-```
-$ ./configure --prefix=/opt/ntCard
-$ make 
-$ make install 
-```
+Make sure you have the following dependencies installed:
 
-ntCard uses OpenMP for parallelization, which requires a modern compiler such as GCC 4.2 or greater. If you have an older compiler, it is best to upgrade your compiler if possible. If you have multiple versions of GCC installed, you can specify a different compiler:
-
+- [Meson](https://mesonbuild.com/) >= 1.0.0
+- [btllib](https://github.com/bcgsc/btllib) - if installing from source, run btllib's `./compile` script and add the following environment variables:
 ```
-$ ./configure CC=gcc-xx CXX=g++-xx 
+export CPPFLAGS="-isystem /path/to/btllib/install/include $CPPFLAGS"
+export LDFLAGS="-L/path/to/btllib/install/lib -lbtllib $LDFLAGS"
 ```
 
-For the best performance of ntCard, pass `-O3` flag:  
+Download the latest release of ntCard, or clone the repo using `git clone --recurse-submodules https://github.com/bcgsc/ntCard.git`.
+
+Run the following commands in the project's directory to install ntCard:
 
 ```
-$ ./configure CFLAGS='-g -O3' CXXFLAGS='-g -O3' 
+meson setup --buildtype release --prefix=$(pwd)/install build
+cd build
+ninja install
 ```
 
+Verify that the installation was successful by executing the `ntcard` binary in `install/bin`.
 
-To run ntCard, its executables should be found in your PATH. If you installed ntCard in /opt/ntCard, add /opt/ntCard/bin to your PATH:
+You can change the installation prefix by modifying the `--prefix` argument of the `meson setup` command. If the `--prefix` argument is removed from the command, ntCard will be installed to the system's default path for binaries.
+
+# Running ntCard
 
 ```
-$ PATH=/opt/ntCard/bin:$PATH
-```
+Usage: ntcard [options] files 
 
-Run ntCard
-==========
-```
-ntcard [OPTIONS] ... FILE(S) ...
-```
-Parameters:
-  * `-t`,  `--threads=N`: use N parallel threads [1] (N>=2 should be used when input files are >=2)
-  * `-k`,  `--kmer=N`: the length of *k*-mer
-  * `-c`,  `--cov=N`: the maximum coverage of *k*-mer in output `[1000]`
-  * `-p`,  `--pref=STRING`: the prefix for output file names 
-  * `-o`,  `--output=STRING`: the name for single output file name (can be used only for single compact output file)
-  * `FILE(S)`: input file or set of files seperated by space, in fasta, fastq, sam, and bam formats. The files can also be in compressed (`.gz`, `.bz2`, `.xz`) formats . A list of files containing file names in each row can be passed with `@` prefix.
-  
-For example to run ntcard on a test file `reads.fastq` with `k=50` and output the histogram in a file with prefix `freq`:
-```
-$ ntcard -k50 -p freq reads.fastq 
-```
-To run ntcard on a test file `reads.fastq` with multiple k's `k=32,64,96,128` and output the histograms in files with prefix `freq` use:
-```
-$ ntcard -k32,64,96,128 -p freq reads.fastq 
-```
-As another example, to run ntcard on `5` input files file_1.fq.gz, file_2.fa, file_3.sam, file_4.bam, file_5.fq with `k=64` and 6 threads and maximum frequency of `c=100` on output file with prefix `freq`:
-```
-$ ntcard -k64 -c100 -t6 -p freq file_1.fq.gz file_2.fa file_3.sam file_4.bam file_5.fq
+Estimates k-mer coverage histogram in input files
+
+Positional arguments:
+files                   [required]
+
+Optional arguments:
+-h --help               shows help message and exits [default: false]
+-v --version            prints version information and exits [default: false]
+-k --kmer-length        Length of the k-mers, ignored if using a spaced seed (see -s)
+-s --spaced-seed        Spaced seed pattern with 1's as cares and 0's as don't cares
+-t --num-threads        Number of threads [default: 1]
+-c --max-coverage       Maximum coverage to estimate [required]
+-l --left-bits          Number of bits to take from the left for sampling [default: 7]
+-r --right-bits         Number of bits to take from the right as k-mer representations [default: 27]
+--long-mode             Optimize file reader for long sequences (>5kb) [default: false]
 ```
 
-If we have a list of input files `lib.in`, to run ntCard with `k=144` and `12` threads and output file with prefix `freq`:
-```
-$ ntcard -k144 -t12 -p freq @lib.in 
-```
-
-Output:
-  * The numbers `Fk` provide useful statistics on the input sequences. By default, F0 and F1 are output to stdout along with runtime.
-      * `F0` denotes the number of distinct k-mers appearing in the stream sequences
-      * `F1` is the total number of k-mers in the input datasets
-      * `F2` is the Gini index of variation that can be used to show the diversity of k-mers and
-      * `F∞` results in the most frequent k-mer in the input reads.
-  * A tab separated output file with columns `k`, `f`, and `n`.
-      * `k` k-mer size
-      * `f` the frequency of a k-mer
-      * `n` the number of k-mers with frequency `f`
-
-
-Publications
-============
+# Publications
 
 ## [ntCard](http://bioinformatics.oxfordjournals.org/content/early/2017/01/04/bioinformatics.btw832)
 
