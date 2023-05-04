@@ -9,11 +9,11 @@
 
 namespace ntcard {
 
-using counter_t = uint16_t;
-
 class NtCard
 {
   private:
+	using counter_t = uint16_t;
+
 	unsigned kmer_size;
 	unsigned left_bits, right_bits;
 	counter_t* t_counter;
@@ -65,6 +65,7 @@ class NtCard
 #pragma omp atomic
 			++t_counter[shifted_value];
 		}
+		++total;
 	}
 
   public:
@@ -89,7 +90,6 @@ class NtCard
 		btllib::NtHash nthash(seq, 1, kmer_size);
 		while (nthash.roll()) {
 			update_counts(nthash.hashes()[0]);
-			++total;
 		}
 	}
 
