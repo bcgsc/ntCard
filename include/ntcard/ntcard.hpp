@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "version.hpp"
+
 namespace ntcard {
 
 using counter_t = uint16_t;
@@ -68,7 +70,7 @@ class NtCard
   public:
 	explicit NtCard(
 	    const unsigned kmer_size,
-	    const unsigned left_bits = 11,
+	    const unsigned left_bits = 7,
 	    const unsigned right_bits = 27)
 	  : kmer_size(kmer_size)
 	  , left_bits(left_bits)

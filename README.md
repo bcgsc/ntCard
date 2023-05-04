@@ -7,7 +7,6 @@
 
 ntCard is a streaming algorithm for cardinality estimation in genomics datasets. Input any number of file(s) in FASTA, FASTQ, SAM, or BAM formats, and ntCard will output the total number of distinct k-mers ($F_0$) and the *k*-mer coverage frequency histogram ($f_i; i \geq 1$).
 
-
 # Installation
 
 We recommend installing ntCard using `conda`, as this will automatically install the required dependencies:

@@ -11,6 +11,14 @@ project(
     ],
 )
 
+conf = configuration_data()
+conf.set('VERSION', meson.project_version())
+configure_file(
+    input: 'include/ntcard/version.hpp',
+    output: 'version.hpp',
+    configuration: conf,
+)
+
 dependencies = [
     dependency('openmp'),
     meson.get_compiler('cpp').find_library('btllib', static: true),
