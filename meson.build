@@ -19,9 +19,12 @@ configure_file(
     configuration: conf,
 )
 
+compiler = meson.get_compiler('cpp')
+
 dependencies = [
     dependency('openmp'),
-    meson.get_compiler('cpp').find_library('btllib', static: true),
+    compiler.find_library('btllib', static: true),
+    compiler.find_library('nthash', static: true),
 ]
 
 include_dirs = [

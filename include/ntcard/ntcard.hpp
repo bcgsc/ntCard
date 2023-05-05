@@ -1,7 +1,7 @@
 #ifndef NTCARD_NTCARD_HPP
 #define NTCARD_NTCARD_HPP
 
-#include <btllib/nthash.hpp>
+#include <nthash/nthash.hpp>
 #include <string>
 #include <vector>
 
@@ -87,7 +87,7 @@ class NtCard
 
 	virtual void process(const std::string& seq)
 	{
-		btllib::NtHash nthash(seq, 1, kmer_size);
+		nthash::NtHash nthash(seq, 1, kmer_size);
 		while (nthash.roll()) {
 			update_counts(nthash.hashes()[0]);
 		}
@@ -124,7 +124,7 @@ class SeedNtCard : public NtCard
 
 	void process(const std::string& seq) override
 	{
-		btllib::SeedNtHash nthash(seq, { seed }, 1, seed.size());
+		nthash::SeedNtHash nthash(seq, { seed }, 1, seed.size());
 		while (nthash.roll()) {
 			update_counts(nthash.hashes()[0]);
 			++total;
