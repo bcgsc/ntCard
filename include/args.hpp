@@ -11,7 +11,7 @@ struct ProgramArguments
 {
 	unsigned kmer_length, num_threads, max_coverage, left_bits, right_bits;
 	std::string spaced_seed, output_path;
-	bool seq_reader_long_mode, output_jellyfish;
+	bool verbose, seq_reader_long_mode, output_jellyfish;
 	std::vector<std::string> input_files;
 
 	ProgramArguments(int argc, char* argv[])
@@ -40,13 +40,18 @@ struct ProgramArguments
 
 		parser.add_argument("-l", "--left-bits")
 		    .help("Number of bits to take from the left for sampling")
-		    .default_value(7U)
+		    .default_value(11U)
 		    .scan<'u', unsigned>();
 
 		parser.add_argument("-r", "--right-bits")
 		    .help("Number of bits to take from the right as k-mer representations")
 		    .default_value(27U)
 		    .scan<'u', unsigned>();
+
+		parser.add_argument("--verbose")
+		    .help("Print more logs to stdout")
+		    .default_value(false)
+		    .implicit_value(true);
 
 		parser.add_argument("--long-mode")
 		    .help("Optimize file reader for long sequences (>5kb)")
@@ -86,6 +91,7 @@ struct ProgramArguments
 		num_threads = parser.get<int>("-t");
 		left_bits = parser.get<unsigned>("-l");
 		right_bits = parser.get<unsigned>("-r");
+		verbose = parser.get<bool>("--verbose");
 		seq_reader_long_mode = parser.get<bool>("--long-mode");
 		output_jellyfish = parser.get<bool>("--jellyfish");
 
@@ -96,6 +102,8 @@ struct ProgramArguments
 			std::exit(1);
 		}
 	}
+
+	void print() {}
 };
 
 #endif

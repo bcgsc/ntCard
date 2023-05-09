@@ -24,7 +24,6 @@ compiler = meson.get_compiler('cpp')
 dependencies = [
     dependency('openmp'),
     compiler.find_library('btllib', static: true),
-    compiler.find_library('nthash', static: true),
 ]
 
 include_dirs = [

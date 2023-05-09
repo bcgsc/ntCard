@@ -1,7 +1,7 @@
 #ifndef NTCARD_NTCARD_HPP
 #define NTCARD_NTCARD_HPP
 
-#include <nthash/nthash.hpp>
+#include <btllib/nthash.hpp>
 #include <string>
 #include <vector>
 
@@ -62,7 +62,6 @@ class NtCard
 	{
 		if (hash_value >> (64 - left_bits) == left_mask) {
 			size_t shifted_value = hash_value & (r_buck - 1);
-#pragma omp atomic
 			++t_counter[shifted_value];
 		}
 		++total;
@@ -71,7 +70,7 @@ class NtCard
   public:
 	explicit NtCard(
 	    const unsigned kmer_size,
-	    const unsigned left_bits = 7,
+	    const unsigned left_bits = 11,
 	    const unsigned right_bits = 27)
 	  : kmer_size(kmer_size)
 	  , left_bits(left_bits)
@@ -87,9 +86,9 @@ class NtCard
 
 	virtual void process(const std::string& seq)
 	{
-		nthash::NtHash nthash(seq, 1, kmer_size);
-		while (nthash.roll()) {
-			update_counts(nthash.hashes()[0]);
+		btllib::NtHash h(seq, 1, kmer_size);
+		while (h.roll()) {
+			update_counts(h.hashes()[0]);
 		}
 	}
 
@@ -115,7 +114,7 @@ class SeedNtCard : public NtCard
   public:
 	explicit SeedNtCard(
 	    const std::string& seed,
-	    const unsigned left_bits = 7,
+	    const unsigned left_bits = 11,
 	    const unsigned right_bits = 27)
 	  : NtCard(seed.size(), left_bits, right_bits)
 	  , seed(seed)
@@ -124,9 +123,9 @@ class SeedNtCard : public NtCard
 
 	void process(const std::string& seq) override
 	{
-		nthash::SeedNtHash nthash(seq, { seed }, 1, seed.size());
-		while (nthash.roll()) {
-			update_counts(nthash.hashes()[0]);
+		btllib::SeedNtHash h(seq, { seed }, 1, seed.size());
+		while (h.roll()) {
+			update_counts(h.hashes()[0]);
 			++total;
 		}
 	}
