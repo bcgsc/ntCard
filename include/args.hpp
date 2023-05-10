@@ -40,12 +40,12 @@ struct ProgramArguments
 
 		parser.add_argument("-l", "--left-bits")
 		    .help("Number of bits to take from the left for sampling")
-		    .default_value(11U)
+		    .default_value(7U)
 		    .scan<'u', unsigned>();
 
 		parser.add_argument("-r", "--right-bits")
 		    .help("Number of bits to take from the right as k-mer representations")
-		    .default_value(27U)
+		    .default_value(28U)
 		    .scan<'u', unsigned>();
 
 		parser.add_argument("--verbose")
