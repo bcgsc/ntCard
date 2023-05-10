@@ -11,7 +11,7 @@ struct ProgramArguments
 {
 	unsigned kmer_length, num_threads, max_coverage, left_bits, right_bits;
 	std::string spaced_seed, output_path;
-	bool verbose, seq_reader_long_mode, output_jellyfish;
+	bool verbose, seq_reader_long_mode, full_output;
 	std::vector<std::string> input_files;
 
 	ProgramArguments(int argc, char* argv[])
@@ -58,8 +58,8 @@ struct ProgramArguments
 		    .default_value(false)
 		    .implicit_value(true);
 
-		parser.add_argument("--jellyfish")
-		    .help("Output in jellyfish format")
+		parser.add_argument("--full-output")
+		    .help("Include number of total (F0) and distinct (F1) k-mers in output")
 		    .default_value(false)
 		    .implicit_value(true);
 
@@ -93,7 +93,7 @@ struct ProgramArguments
 		right_bits = parser.get<unsigned>("-r");
 		verbose = parser.get<bool>("--verbose");
 		seq_reader_long_mode = parser.get<bool>("--long-mode");
-		output_jellyfish = parser.get<bool>("--jellyfish");
+		full_output = parser.get<bool>("--full-output");
 
 		try {
 			input_files = parser.get<std::vector<std::string> >("files");

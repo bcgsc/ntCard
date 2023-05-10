@@ -48,7 +48,7 @@ main(int argc, char* argv[])
 		}
 		if (!args.verbose) {
 #pragma omp critical
-			std::cout << "  - DONE: " << file_name << std::endl;
+			std::cout << "DONE: " << file_name << std::endl;
 		}
 	}
 
@@ -58,7 +58,7 @@ main(int argc, char* argv[])
 
 	std::cout << "Writing output... " << std::flush;
 	std::ofstream out(args.output_path);
-	if (!args.output_jellyfish) {
+	if (args.full_output) {
 		out << "F1\t" << hist[0] << std::endl;
 		out << "F0\t" << hist[1] << std::endl;
 	}
