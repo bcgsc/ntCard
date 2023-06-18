@@ -7,14 +7,6 @@
 
 ntCard is a streaming algorithm for cardinality estimation in genomics datasets. Input any number of file(s) in FASTA, FASTQ, SAM, or BAM formats, and ntCard will output the total number of distinct k-mers ($F_0$) and the *k*-mer coverage frequency histogram ($f_i; i \geq 1$).
 
-# Installation
-
-We recommend installing ntCard using `conda`, as this will automatically install the required dependencies:
-
-```
-conda install -c bioconda ntcard
-```
-
 # Compiling from source
 
 Make sure you have the following dependencies installed:
@@ -26,7 +18,7 @@ export CPPFLAGS="-isystem /path/to/btllib/install/include $CPPFLAGS"
 export LDFLAGS="-L/path/to/btllib/install/lib -lbtllib $LDFLAGS"
 ```
 
-Download the latest release of ntCard, or clone the repo using `git clone --recurse-submodules https://github.com/bcgsc/ntCard.git`.
+Clone the repo using `git clone --recurse-submodules https://github.com/bcgsc/ntCard.git`.
 
 Run the following commands in the project's directory to install ntCard:
 
