@@ -89,12 +89,12 @@ clang-format:
 	if ls *.fixed; then exit 1; fi
 
 clean-local:
-	rm test-reads.fq.gz
-	rm test_k12.hist
-	rm test-gap_k12.hist
-	rm test-rna-reads.fq.gz
-	rm test-rna_k12.hist
-	rm test-rna-gap_k12.hist
-	rm test-reads.fa
-	rm test-fa_k12.hist
-	rm test-fa-gap_k12.hist
+	$(RM) test-reads.fq.gz
+	$(RM) test_k12.hist
+	$(RM) test-gap_k12.hist
+	$(RM) test-rna-reads.fq.gz
+	$(RM) test-rna_k12.hist
+	$(RM) test-rna-gap_k12.hist
+	$(RM) test-reads.fa
+	$(RM) test-fa_k12.hist
+	$(RM) test-fa-gap_k12.hist
